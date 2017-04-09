@@ -1,0 +1,63 @@
+body {
+    font-family: Verdana, Geneva, Tahoma, sans-serif;
+}
+
+h1 {
+    font-size: 14pt;
+}
+
+#content {
+    margin: auto;
+    width: 350px;
+}
+
+.input-row {
+    height: 40px;
+    width: 100%;
+    margin-bottom: 8px;
+    white-space: nowrap;
+}
+
+.input-row .label-icon {
+    height: 40px;
+    width: 40px;
+    background-size: contain;
+    display: inline-block;
+    vertical-align: middle;    
+}
+
+.input-row .input-value {
+    display: inline-block;
+}
+
+.input-row .input-value input {
+}
+
+#flour .label-icon {
+    background-image: url("flour.png");
+}
+
+#water .label-icon {
+    background-image: url("water.png");
+}
+
+#starter .label-icon {
+    background-image: url("starter.png");
+}
+
+/* special case */
+#starter-hydration {
+    display: inline-block;
+}
+
+#starter-hydration .label-icon {
+    background-image: url("starter_hydration.png");
+}
+
+#hydration .label-icon {
+    background-image: url("hydration.png");
+}
+
+#weight .label-icon {
+    background-image: url("weight.png");
+}

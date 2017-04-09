@@ -1,14 +1,53 @@
 <html>
     <head>
         <!-- Shout out to http://www.marcofolio.net/webdesign/build_native-looking_apps_for_ios.html -->
-        <meta name="viewport" content="width=device-width; initial-scale=1.0; maximum-scale=1.0; user-scalable=0;" />
+        <!-- <meta name="viewport" content="width=device-width; initial-scale=1.0; maximum-scale=1.0; user-scalable=0;" /> -->
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="white" />
         <link rel="apple-touch-icon" href="content/icon.png" />
-        <link rel="icon" href="content/icon.png">
+        <link rel="icon" href="content/icon.png" />
+        <link rel="stylesheet" type="text/css" href="content/style.css" />
         <title>Bread Buddy</title>
     </head>
     <body>
-        <h1>Dough Calculator</h1>
+        <div id="content">
+            <h1>Dough Calculator</h1>
+            <div id="flour" class="input-row">
+                <div class="label-icon"></div>
+                <div class="input-value">
+                    <input name="flourText" value="Flour weight" />
+                </div>
+            </div>
+            <div id="water" class="input-row">
+                <div class="label-icon"></div>
+                <div class="input-value">
+                    <input name="waterText" value="Water weight" />
+                </div>
+            </div>
+            <div id="starter" class="input-row">
+                <div class="label-icon"></div>
+                <div class="input-value">
+                    <input name="starterText" value="Starter weight" />
+                </div>
+                <div id="starter-hydration">
+                    <div class="label-icon"></div>
+                    <div class="input-value">
+                        <input name="starterHydrationText" value="100" />
+                    </div>
+                </div>
+            </div>
+            <div id="hydration" class="input-row">
+                <div class="label-icon"></div>
+                <div class="input-value">
+                    <input name="hydrationText" value="Dough hydration" />
+                </div>
+            </div>
+            <div id="weight" class="input-row">
+                <div class="label-icon"></div>
+                <div class="input-value">
+                    <input name="weightText" value="Total weight" />
+                </div>
+            </div>
+        </div>
     </body>
 </html>
