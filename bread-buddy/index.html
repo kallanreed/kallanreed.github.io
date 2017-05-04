@@ -2,12 +2,13 @@
 <html>
     <head>
         <!-- Shout out to http://www.marcofolio.net/webdesign/build_native-looking_apps_for_ios.html -->
-        <meta name="viewport" content="width=device-width; minimal-ui" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="white" />
         <link rel="apple-touch-icon" href="content/icon.png" />
         <link rel="icon" href="content/icon.png" />
         <link rel="stylesheet" type="text/css" href="content/style.css" />
+        <script type="text/javascript" src="code/hydration.js"></script>
         <title>Bread Buddy</title>
     </head>
     <body>
@@ -33,7 +34,7 @@
             </div>
             <div id="weight" class="input-row">
                 <div class="input-icon"></div>
-                <input class="input-value" name="weightText" placeholder="Total weight" />
+                <input class="input-value" id="weightText" placeholder="Total weight" />
             </div>
             <div class="calc-row">
                 <select>
@@ -43,5 +44,8 @@
                 <button>Solve</button>
             </div>
         </div>
+        <script type="text/javascript">
+            initializeControls();
+        </script>
     </body>
 </html>
