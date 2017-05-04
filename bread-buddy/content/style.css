@@ -6,7 +6,8 @@ body {
 #content {
     display: block;
     margin: 0 auto;
-    width: 350px;
+    width: 80%;
+    max-width: 400px;
 }
 
 h1 {
@@ -20,53 +21,63 @@ h1 {
     display: flex;
 }
 
-.input-row .label-icon {
+.input-icon {
     height: 40px;
     width: 40px;
-    flex-grow: 0;
-    flex-shrink: 0;
-    -webkit-flex-grow: 0;
-    -webkit-flex-shrink: 0;
+    flex: 0 0 auto;
     background-size: contain;
     vertical-align: center;    
 }
 
-.input-row .input-value {
+.input-value {
     padding-left: 5px;
     margin: auto auto;
     height: 60%;
-    flex: 1;
-    -webkit-flex: 1;
+    flex: 1 1 auto;
+    width: 100px;
 }
 
-#flour .label-icon {
+#flour .input-icon {
     background-image: url("flour.png");
 }
 
-#water .label-icon {
+#water .input-icon {
     background-image: url("water.png");
 }
 
-#starter .label-icon {
+#starter .input-icon {
     background-image: url("starter.png");
 }
 
-#starter .label-icon:nth-of-type(2) {
+#starter .input-icon:nth-of-type(2) {
     background-image: url("starter_hydration.png");
 }
 
 #starter .input-value:nth-of-type(2) {
-    flex-grow: 0;
-    flex-basis: 50px;
-    -webkit-flex-grow: 0;
-    -webkit-flex-basis: 50px;
-    min-width: 50px;
+    flex: 0 0 30px;
+    min-width: 30px;
 }
 
-#hydration .label-icon {
+#hydration .input-icon {
     background-image: url("hydration.png");
 }
 
-#weight .label-icon {
+#weight .input-icon {
     background-image: url("weight.png");
+}
+
+.calc-row {
+    display: flex;
+    width: 100%;
+}
+
+.calc-row select {
+    flex: 1 0 auto;
+    width: 100px;
+    margin-right: 10px;
+}
+
+.calc-row button {
+    flex: 1 0 auto;
+    width: 75px;
 }

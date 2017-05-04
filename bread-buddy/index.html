@@ -2,7 +2,7 @@
 <html>
     <head>
         <!-- Shout out to http://www.marcofolio.net/webdesign/build_native-looking_apps_for_ios.html -->
-        <meta name="viewport" content="width=device-width; initial-scale=1.0; user-scalable=0; minimal-ui" />
+        <meta name="viewport" content="width=device-width; minimal-ui" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="white" />
         <link rel="apple-touch-icon" href="content/icon.png" />
@@ -14,26 +14,33 @@
         <div id="content">
             <h1>Dough Calculator</h1>
             <div id="flour" class="input-row">
-                <div class="label-icon"></div>
+                <div class="input-icon"></div>
                 <input class="input-value" name="flourText" placeholder="Flour weight" />
             </div>
             <div id="water" class="input-row">
-                <div class="label-icon"></div>
+                <div class="input-icon"></div>
                 <input class="input-value" name="waterText" placeholder="Water weight" />
             </div>
             <div id="starter" class="input-row">
-                <div class="label-icon"></div>
+                <div class="input-icon"></div>
                 <input class="input-value" name="starterText" placeholder="Starter weight" />
-                <div id="starter-hudration" class="label-icon"></div>
+                <div id="starter-hudration" class="input-icon"></div>
                 <input class="input-value" name="starterHydrationText" value="100" />
             </div>
             <div id="hydration" class="input-row">
-                <div class="label-icon"></div>
+                <div class="input-icon"></div>
                 <input class="input-value" name="hydrationText" placeholder="Dough hydration" />
             </div>
             <div id="weight" class="input-row">
-                <div class="label-icon"></div>
+                <div class="input-icon"></div>
                 <input class="input-value" name="weightText" placeholder="Total weight" />
+            </div>
+            <div class="calc-row">
+                <select>
+                    <option>Flour &amp; Water Weight</option>
+                    <option>Hydration &amp; Total Weight</option>
+                </select>
+                <button>Solve</button>
             </div>
         </div>
     </body>
