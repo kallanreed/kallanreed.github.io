@@ -14,32 +14,32 @@
     <body>
         <div id="content">
             <h1>Dough Calculator</h1>
-            <div id="flour" class="input-row">
+            <div id="flour" class="input-row" title="Flour weight">
                 <div class="input-icon"></div>
                 <input class="input-value" id="flourText" placeholder="Flour weight" />
             </div>
-            <div id="water" class="input-row">
+            <div id="water" class="input-row" title="Water weight">
                 <div class="input-icon"></div>
                 <input class="input-value" id="waterText" placeholder="Water weight" />
             </div>
-            <div id="starter" class="input-row">
+            <div id="starter" class="input-row" title="Starter weight">
                 <div class="input-icon"></div>
                 <input class="input-value" id="starterText" placeholder="Starter weight" />
-                <div class="input-icon"></div>
-                <input class="input-value" id="starterHydrationText" value="100" />
+                <div class="input-icon" title="Starter hydration percentage"></div>
+                <input class="input-value" id="starterHydrationText" value="100" title="Starter hydration percentage" />
             </div>
-            <div id="hydration" class="input-row">
+            <div id="hydration" class="input-row" title="Hydration percentage">
                 <div class="input-icon"></div>
-                <input class="input-value" id="hydrationText" placeholder="Dough hydration" />
+                <input class="input-value" id="hydrationText" placeholder="Hydration percentage"/>
             </div>
-            <div id="weight" class="input-row">
+            <div id="weight" class="input-row" title="Total weight">
                 <div class="input-icon"></div>
-                <input class="input-value" id="weightText" placeholder="Total weight" />
+                <input class="input-value" id="weightText" placeholder="Total weight"/>
             </div>
             <div class="calc-row">
-                <select id="calculationSelect">
-                </select>
-                <button id="solveButton">Solve</button>
+                <div class="calc-spacer"></div>
+                <select id="calculationSelect" title="What would you like to find?"></select>
+                <button id="solveButton" title="Calculate values">Solve</button>
             </div>
         </div>
         <script type="text/javascript">

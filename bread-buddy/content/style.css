@@ -30,11 +30,17 @@ h1 {
 }
 
 .input-value {
+    margin: auto 0;
+    margin-left: 5px;
     padding-left: 5px;
-    margin: auto auto;
     height: 60%;
     flex: 1 1 auto;
     width: 100px;
+    border: 1px solid cornflowerblue;
+}
+
+.input-value:disabled {
+    border: 1px solid lightgray;    
 }
 
 #flour .input-icon {
@@ -73,6 +79,10 @@ h1 {
     height: 32px;
 }
 
+.calc-spacer {
+    flex: 0 0 48px;
+}
+
 .calc-row select {
     flex: 1 0 auto;
     margin-right: 10px;
@@ -84,4 +94,5 @@ h1 {
 .calc-row button {
     flex: 0 0 auto;
     width: 75px;
+    height: 100%;
 }
