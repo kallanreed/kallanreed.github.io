@@ -227,10 +227,8 @@ function HydrationContext()
 
     this.enableFields = function()
     {
-        console.log("Enabling required fields...");
-
         for (var f of this.fields) {
-            f.disabled = this.currentCalculation.lockedFields.includes(f);
+            f.readOnly = this.currentCalculation.lockedFields.includes(f);
         }
     }
 

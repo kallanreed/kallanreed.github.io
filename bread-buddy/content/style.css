@@ -6,6 +6,7 @@ body {
 #content {
     display: block;
     margin: 0 auto;
+    margin-top: 20px;
     width: 80%;
     max-width: 400px;
 }
@@ -39,9 +40,9 @@ h1 {
     border: 1px solid cornflowerblue;
 }
 
-.input-value:disabled {
+.input-value[readonly] {
     border: 1px solid lightgray;
-    color: black;
+    : black;
 }
 
 #flour .input-icon {
@@ -61,8 +62,8 @@ h1 {
 }
 
 #starter .input-value:nth-of-type(2) {
-    flex: 0 0 30px;
-    min-width: 30px;
+    flex: 0 0 36px;
+    min-width: 36px;
 }
 
 #hydration .input-icon {
