@@ -81,10 +81,6 @@ h1 {
     height: 32px;
 }
 
-.calc-spacer {
-    flex: 0 0 45px;
-}
-
 .calc-row select {
     flex: 1 0 auto;
     margin-right: 10px;
@@ -95,6 +91,10 @@ h1 {
 
 .calc-row button {
     flex: 0 0 auto;
-    width: 75px;
+    width: 65px;
     height: 100%;
+}
+
+.calc-row button:nth-of-type(1) {
+    margin-right: 10px;
 }

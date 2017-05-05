@@ -3,12 +3,17 @@
 
 function HydrationData()
 {
-    this.flour = 0.0;
-    this.water = 0.0;
-    this.starter = 0.0;
-    this.starterHydration = 100.0;
-    this.hydration = 0.0;
-    this.total = 0.0;
+    this.reset = function() {
+        this.flour = 0.0;
+        this.water = 0.0;
+        this.starter = 0.0;
+        this.starterHydration = 1.0;
+        this.hydration = 0.0;
+        this.total = 0.0;       
+    }
+
+    // initializes values
+    this.reset();
 
     this.findFlour = function() {
         // hydration = totalWater / (flour + starterFlour)
@@ -128,6 +133,7 @@ function HydrationContext()
     this.hydrationText = document.getElementById("hydrationText");
     this.weightText = document.getElementById("weightText");
     this.calculationSelect = document.getElementById("calculationSelect");
+    this.clearButton = document.getElementById("clearButton");
     this.solveButton = document.getElementById("solveButton");
 
     var that = this;
@@ -230,6 +236,12 @@ function HydrationContext()
         for (var f of this.fields) {
             f.readOnly = this.currentCalculation.lockedFields.includes(f);
         }
+    }
+
+    this.clearButton.onclick = function()
+    {
+        that.data.reset();
+        that.writeValues();
     }
 
     this.solveButton.onclick = function()
