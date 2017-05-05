@@ -40,7 +40,8 @@ h1 {
 }
 
 .input-value:disabled {
-    border: 1px solid lightgray;    
+    border: 1px solid lightgray;
+    color: black;
 }
 
 #flour .input-icon {
@@ -80,7 +81,7 @@ h1 {
 }
 
 .calc-spacer {
-    flex: 0 0 48px;
+    flex: 0 0 45px;
 }
 
 .calc-row select {
