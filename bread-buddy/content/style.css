@@ -42,7 +42,8 @@ h1 {
 
 .input-value[readonly] {
     border: 1px solid lightgray;
-    : black;
+    color : black;
+    background-color: #DDDDDD;
 }
 
 #flour .input-icon {

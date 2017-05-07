@@ -205,6 +205,11 @@ function HydrationContext()
             "Hydration",
             [this.hydrationText, this.weightText],
             function(data) {
+                if (data.flour === 0) {
+                    alert("Flour weight must be greater than zero.");
+                    return;
+                }
+
                 data.hydration = data.findHydration();
                 data.total = data.findTotalWeight();
             }
