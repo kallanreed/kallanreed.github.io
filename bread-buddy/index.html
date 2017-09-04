@@ -5,6 +5,9 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="white" />
+        <meta name="description" content="Bread Buddy - a baking calculator">
+        <meta name="keywords" content="bread,dough,sourdough,hydration,starter,calculator,computer,spreadsheet,baking,weight">
+        <meta name="author" content="JKyle Reed">
         <link rel="apple-touch-icon" href="content/icon.png" />
         <link rel="icon" href="content/icon.png" />
         <link rel="stylesheet" type="text/css" href="content/style.css" />
@@ -14,6 +17,11 @@
     <body>
         <div id="content">
             <h1>Dough Calculator</h1>
+            <div class="calc-row">
+                <select id="calculationSelect" title="What would you like to find?"></select>
+                <button id="clearButton" title="Clear values">Clear</button>
+                <button id="solveButton" title="Calculate values">Solve</button>
+            </div>
             <div id="flour" class="input-row" title="Flour weight">
                 <div class="input-icon"></div>
                 <input class="input-value" id="flourText" placeholder="Flour weight" type="number" />
@@ -35,11 +43,6 @@
             <div id="weight" class="input-row" title="Total weight">
                 <div class="input-icon"></div>
                 <input class="input-value" id="weightText" placeholder="Total weight" type="number" />
-            </div>
-            <div class="calc-row">
-                <select id="calculationSelect" title="What would you like to find?"></select>
-                <button id="clearButton" title="Clear values">Clear</button>
-                <button id="solveButton" title="Calculate values">Solve</button>
             </div>
         </div>
         <script type="text/javascript">
