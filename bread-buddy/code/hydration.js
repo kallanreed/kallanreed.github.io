@@ -132,6 +132,9 @@ function HydrationContext()
     this.starterHydrationText = document.getElementById("starterHydrationText");
     this.hydrationText = document.getElementById("hydrationText");
     this.weightText = document.getElementById("weightText");
+    this.totalFlourText = document.getElementById("totalFlourText");
+    this.saltText = document.getElementById("saltText");
+    this.yeastText = document.getElementById("yeastText");
     this.calculationSelect = document.getElementById("calculationSelect");
     this.clearButton = document.getElementById("clearButton");
     this.solveButton = document.getElementById("solveButton");
@@ -234,6 +237,11 @@ function HydrationContext()
         this.starterHydrationText.value = (this.data.starterHydration * 100);
         this.hydrationText.value = (this.data.hydration * 100).toFixed(2);
         this.weightText.value = this.data.total.toFixed(2);
+
+        // additional fields
+        this.totalFlourText.innerText = this.data.totalFlour().toFixed(2);
+        this.saltText.innerText = (this.data.totalFlour() * 0.02).toFixed(2);
+        this.yeastText.innerText = (this.data.totalFlour() * 0.015).toFixed(2);
     }
 
     this.enableFields = function()
@@ -282,4 +290,10 @@ function HydrationContext()
     this.calculationSelect.innerHTML = options;
     this.calculationSelect.value = 0;
     this.calculationSelect.onchange();
+}
+
+function showMore()
+{
+    document.getElementById("more-button").style["display"] = "none";
+    document.getElementById("more-container").style["display"] = "block";
 }

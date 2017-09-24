@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <!-- Shout out to http://www.marcofolio.net/webdesign/build_native-looking_apps_for_ios.html -->
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="white" />
+        <meta name="description" content="Bread Buddy - a baking calculator">
+        <meta name="keywords" content="bread,dough,sourdough,hydration,starter,calculator,computer,spreadsheet,baking,weight">
+        <meta name="author" content="Kyle Reed">
+        <link rel="apple-touch-icon" href="content/icon.png" />
+        <link rel="icon" href="content/icon.png" />
+        <link rel="stylesheet" type="text/css" href="content/style.css" />
+        <script type="text/javascript" src="code/hydration.js"></script>
+        <title>Bread Buddy</title>
+    </head>
+    <body>
+        <div id="content">
+            <h1>Dough Calculator</h1>
+            <div class="calc-row">
+                <select id="calculationSelect" title="What would you like to find?"></select>
+                <button id="clearButton" title="Clear values">Clear</button>
+                <button id="solveButton" title="Calculate values">Solve</button>
+            </div>
+            <div id="flour" class="input-row" title="Flour weight">
+                <div class="input-icon"></div>
+                <input class="input-value" id="flourText" placeholder="Flour weight" type="number" />
+            </div>
+            <div id="water" class="input-row" title="Water weight">
+                <div class="input-icon"></div>
+                <input class="input-value" id="waterText" placeholder="Water weight" type="number" />
+            </div>
+            <div id="starter" class="input-row" title="Starter weight">
+                <div class="input-icon"></div>
+                <input class="input-value" id="starterText" placeholder="Starter weight" type="number" />
+                <div class="input-icon" title="Starter hydration percentage"></div>
+                <input class="input-value" id="starterHydrationText" value="100" title="Starter hydration percentage" type="number" />
+            </div>
+            <div id="hydration" class="input-row" title="Hydration percentage">
+                <div class="input-icon"></div>
+                <input class="input-value" id="hydrationText" placeholder="Hydration percentage" type="number" />
+            </div>
+            <div id="weight" class="input-row" title="Total weight">
+                <div class="input-icon"></div>
+                <input class="input-value" id="weightText" placeholder="Total weight" type="number" />
+            </div>
+            <div class="more-content">
+                <div id="more-button" onclick="showMore()">Show more...</div>
+                <div id="more-container">
+                    <div><div class="more-label">Total Flour: </div><div class="more-value" id="totalFlourText">0</div>
+                    <div><div class="more-label">Salt (2%): </div><div class="more-value" id="saltText">0</div>
+                    <div><div class="more-label">Yeast (1.5%): </div><div class="more-value" id="yeastText">0</div>
+                </div>
+            </div>
+        </div>
+        <script type="text/javascript">
+            var context = new HydrationContext();
+        </script>
+    </body>
+</html>
