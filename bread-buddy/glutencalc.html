@@ -11,12 +11,40 @@
         <link rel="apple-touch-icon" href="content/icon.png" />
         <link rel="icon" href="content/icon.png" />
         <link rel="stylesheet" type="text/css" href="content/style.css" />
+        <script type="text/javascript" src="code/gluten.js"></script>
         <title>Bread Buddy</title>
     </head>
     <body>
         <div id="content">
             <h1>Gluten Calculator</h1>
-            Coming soon...
+            <div id="flour" class="input-row" title="Flour weight">
+                <div class="input-icon"></div>
+                <input class="input-value" id="flourText" placeholder="Flour weight" type="number" />
+            </div>
+            <div id="flourProtein" class="input-row" title="Flour % protein">
+                <div class="input-icon"></div>
+                <input class="input-value" id="flourProteinText" placeholder="Flour % protein (usually 11%)" type="number" />
+            </div>
+            <div id="vitalProtien" class="input-row" title="Vital gluten % protein">
+                <div class="input-icon"></div>
+                <input class="input-value" id="vitalProteinText" placeholder="Vital gluten % protein (usually 75%)" type="number" />
+            </div>
+            <div id="totalProtein" class="input-row" title="Desired total % protein">
+                <div class="input-icon"></div>
+                <input class="input-value" id="totalProteinText" placeholder="Desired total % protein" type="number" />
+            </div>
+            <div id="vital" class="input-row" title="Vital gluten weight">
+                <div class="input-icon"></div>
+                <input class="input-value" id="vitalText" placeholder="Vital gluten weight" type="number" />
+            </div>
+            <div class="calc-row">
+                <div class="spacer"></div>
+                <button id="clearButton" title="Clear values">Clear</button>
+                <button id="solveButton" title="Calculate values">Solve</button>
+            </div>
         </div>
+        <script type="text/javascript">
+            var context = new GlutenContext();
+        </script>
     </body>
 </html>

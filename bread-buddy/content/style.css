@@ -99,6 +99,14 @@ h1 {
     height: 100%;
 }
 
+.calc-row .spacer {
+    display: inline-flex;
+    flex: 1 0 auto;
+    margin-right: 10px;
+    width: 100px;
+    height: 100%;
+}
+
 .calc-row button {
     flex: 0 0 auto;
     width: 65px;

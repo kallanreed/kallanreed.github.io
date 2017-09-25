@@ -217,7 +217,7 @@ function HydrationContext()
                 data.total = data.findTotalWeight();
             }
         ),
-    ]
+    ];
 
     this.readValues = function()
     {
