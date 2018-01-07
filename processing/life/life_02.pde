@@ -271,6 +271,7 @@ class Bug
     float flight;
     float feed;
     float fuck;
+    float isolation;
     float maxMove;
     float wiggle;
     float direction;
@@ -283,12 +284,11 @@ class Bug
         species = nextSpecies++;
         generation = 1;
 
-        energy = 100.0;
         alive = true;
         eaten = false;
         mutationRate = random(0.01, 0.1);
 
-        spawnSize = random(1.0, 3.0);
+        spawnSize = random(1.0, 4.0);
         size = spawnSize;
         color_ = 0xFF000000 + (int)random(0x606060, 0xFFFFFF);
 
@@ -297,11 +297,13 @@ class Bug
         flight = random(0.5, 1.5);
         feed = random(0.5, 1.5);
         fuck = random(1.5, 3.0);
+        isolation = random(0.1, 1.0);
         maxMove = 4.0 - spawnSize;
         wiggle = random(PI / 64, PI / 8);
         direction = mapTheta(random(-PI, PI));
 
         baseMetabolism = random(spawnSize / 2);
+        energy = sq(spawnSize) * 500;
     }
 
     Bug(Bug parent)
@@ -318,7 +320,6 @@ class Bug
 
         position = randomPoint(parent.position, parent.size);
 
-        energy = 100.0;
         alive = true;
         eaten = false;
         spawnSize = mutateValue(parent.spawnSize, parent.mutationRate);
@@ -330,11 +331,13 @@ class Bug
         flight = mutateValue(parent.flight, parent.mutationRate);
         feed = mutateValue(parent.feed, parent.mutationRate);
         fuck = mutateValue(parent.fuck, parent.mutationRate);
+        isolation = mutateValue(parent.isolation, parent.mutationRate);
         maxMove = mutateValue(parent.maxMove, parent.mutationRate);
         wiggle = mutateValue(parent.wiggle, parent.mutationRate);
         direction = mapTheta(random(-PI, PI));
 
         baseMetabolism = mutateValue(parent.baseMetabolism, parent.mutationRate);
+        energy = sq(spawnSize) * 500;
     }
 
     void render()
@@ -351,7 +354,8 @@ class Bug
     {
         if (!alive) return;
 
-        PVector initial = position;
+        float initialX = position.x;
+        float initialY = position.y;
 
         if (neighbors.size() > 0)
             takeAction(neighbors);
@@ -361,7 +365,7 @@ class Bug
         // fix up location and update energy
         constrainBounds();
         energy -= baseMetabolism;
-        energy -= sq(size) * dist(initial.x, initial.y, position.x, position.y);
+        energy -= size * dist(initialX, initialY, position.x, position.y);
 
         alive = energy > 0;
     }
@@ -415,7 +419,7 @@ class Bug
             case PREY:
             case CORPSE:
                 if (distance <= 0)
-                 eat(bugDist.bug);
+                    eat(bugDist.bug);
         }
 
         // update moveSpeed
@@ -434,11 +438,18 @@ class Bug
                 break;
 
             case SIBLING:
+                if (distance < (getSenseRadius() * isolation))
+                    moveSpeed = random(0, moveSpeed / 2);
+                else
+                    moveSpeed = random(0, isolation);
+                break;
+
             case OTHER:
                 moveSpeed = random(0, moveSpeed);
+                break;
         }
 
-        jitterDirection(wiggle / 4);
+        jitterDirection(wiggle / 2);
         move(moveSpeed);
     }
 
