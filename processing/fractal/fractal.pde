@@ -98,13 +98,36 @@
         rect(0, 0, screenDim.x, screenDim.y);
     }
 
+    color[] pal = new color[] {
+        color(60, 0, 0),
+        color(255, 0, 0),
+        color(255, 255, 0),
+        color(60, 255, 60),
+        color(0, 255, 255),
+        color(255, 0, 255),
+        color(0, 0, 255)
+    };
+
     color getColor(int i)
     {
         if (i < 0)
             return color(0);
-
-        return color(map(i, 0, iterationCutoff, 32, 255));
+            
+        float position = map(i, 0, iterationCutoff, 0, pal.length - 1);
+        int index = floor(position);
+        
+        color start = pal[index];
+        color end = pal[index + 1];
+        return lerpColor(start, end, (position - index));
     }
+
+    // color getColor(int i)
+    // {
+    //     if (i < 0)
+    //         return color(0);
+
+    //     return color(map(i, 0, iterationCutoff, 32, 255));
+    // }
 
     void setPixel(int x, int y, color c)
     {
