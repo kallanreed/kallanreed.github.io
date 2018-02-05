@@ -35,6 +35,11 @@ function DummyState(cards, crystals)
         this.crystals[color]++;
     }
 
+    this.getCrystalCount = function(color)
+    {
+        return this.crystals[color];
+    }
+
     this.addCard = function(color)
     {
         this.cards.push(color);
@@ -112,6 +117,34 @@ function DummyState(cards, crystals)
             "Cards: " + this.cards + "\n" +
             "Deck: " + this.deck;
     }
+}
+
+function UIContext()
+{
+    //this.playTurnButton = document.getElementById("playTurnButton");
+
+    this.redCount = document.getElementById("red");
+    this.greenCount = document.getElementById("green");
+    this.blueCount = document.getElementById("blue");
+    this.whiteCount = document.getElementById("white");
+
+    this.state = new DummyState([1,2,3,0,0,1,2,0,1,3,0], [1,2,0,0]);
+
+    this.refreshUI = function()
+    {
+        this.redCount.innerText = this.state.getCrystalCount(CrystalColor.Red);
+        this.greenCount.innerText = this.state.getCrystalCount(CrystalColor.Green);
+        this.blueCount.innerText = this.state.getCrystalCount(CrystalColor.Blue);
+        this.whiteCount.innerText = this.state.getCrystalCount(CrystalColor.White);
+    }
+
+    // this.playTurnButton.onclick = function()
+    // {
+
+    // }
+
+    // redraw UI
+    this.refreshUI();
 }
 
 function runTest()

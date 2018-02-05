@@ -9,8 +9,39 @@ body {
     margin-top: 20px;
     width: 80%;
     max-width: 400px;
+    border: 1px solid #AAAAAA;
 }
 
 h1 {
     font-size: 14pt;
+}
+
+.crystals {
+    width: 100%;
+    display: flex;
+    justify-content: space-around;
+}
+
+.crystals div {
+    width: 64px;
+    height: 64px;
+    display: inline-flex;
+    text-align: center;
+    font-size: 18pt;
+}
+
+#red {
+    background-image: url("red.png");
+}
+
+#green {
+    background-image: url("green.png");
+}
+
+#blue {
+    background-image: url("blue.png");
+}
+
+#white {
+    background-image: url("white.png");
 }
