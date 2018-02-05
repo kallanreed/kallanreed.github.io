@@ -79,6 +79,7 @@ h1 {
     height: 32px;
     display: inline-block;
     flex: 0 1 auto;
+    margin: 0px;
 }
 
 .red-card {
@@ -92,8 +93,13 @@ h1 {
 .blue-card {
     background-image: url("blue-card.png");
 }
+
 .white-card {
     background-image: url("white-card.png");
+}
+
+.spacer-card {
+    width: 10px !important;
 }
 
 #button-area {

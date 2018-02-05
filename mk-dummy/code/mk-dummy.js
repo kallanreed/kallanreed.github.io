@@ -163,7 +163,13 @@ function UIContext()
         var color = this.getColorString(color).toLowerCase();
         var elm = document.createElement("div");
         elm.setAttribute("class", color + "-card");
+        this.cardHistory.appendChild(elm);
+    }
 
+    this.addSpacerToCardHistory = function()
+    {
+        var elm = document.createElement("div");
+        elm.setAttribute("class", "spacer-card");
         this.cardHistory.appendChild(elm);
     }
 
@@ -180,6 +186,7 @@ function UIContext()
             for (var c of drawn)
                 that.addCardHistory(c);
 
+            that.addSpacerToCardHistory();
             that.refreshUI();
         }
         else
