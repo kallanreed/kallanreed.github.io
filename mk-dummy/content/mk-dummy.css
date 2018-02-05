@@ -1,0 +1,16 @@
+body {
+    font-family: Verdana, Geneva, Tahoma, sans-serif;
+    margin: 0px;
+}
+
+#content {
+    display: block;
+    margin: 0 auto;
+    margin-top: 20px;
+    width: 80%;
+    max-width: 400px;
+}
+
+h1 {
+    font-size: 14pt;
+}
