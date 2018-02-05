@@ -3,7 +3,7 @@
 
 // color enum
 var CrystalColor = Object.freeze({
-    Red: 0, Blue: 1, Green: 2, White: 3
+    Red: 0, Green: 1, Blue: 2, White: 3
 });
 
 // get the last element of an array
@@ -43,6 +43,11 @@ function DummyState(cards, crystals)
     this.addCard = function(color)
     {
         this.cards.push(color);
+    }
+
+    this.getRemainingCardCount = function()
+    {
+        return this.deck.length;
     }
 
     this.prepareDeck = function()
@@ -121,14 +126,16 @@ function DummyState(cards, crystals)
 
 function UIContext()
 {
-    //this.playTurnButton = document.getElementById("playTurnButton");
-
-    this.redCount = document.getElementById("red");
-    this.greenCount = document.getElementById("green");
-    this.blueCount = document.getElementById("blue");
-    this.whiteCount = document.getElementById("white");
-
-    this.state = new DummyState([1,2,3,0,0,1,2,0,1,3,0], [1,2,0,0]);
+    this.redCount = document.getElementById("red-count");
+    this.greenCount = document.getElementById("green-count");
+    this.blueCount = document.getElementById("blue-count");
+    this.whiteCount = document.getElementById("white-count");
+    this.cardCount = document.getElementById("card-count");
+    this.cardHistory = document.getElementById("card-history");
+    this.playTurnButton = document.getElementById("play-turn-button");
+    
+    this.state = new DummyState([1,2,3,0,0,1,2,0,1,3,0,3,2,1,2,3], [1,0,2,0]);
+    var that = this;
 
     this.refreshUI = function()
     {
@@ -136,20 +143,59 @@ function UIContext()
         this.greenCount.innerText = this.state.getCrystalCount(CrystalColor.Green);
         this.blueCount.innerText = this.state.getCrystalCount(CrystalColor.Blue);
         this.whiteCount.innerText = this.state.getCrystalCount(CrystalColor.White);
+        this.cardCount.innerText = this.state.getRemainingCardCount();
     }
 
-    // this.playTurnButton.onclick = function()
-    // {
+    this.getColorString = function(color)
+    {
+        switch (color)
+        {
+            case CrystalColor.Red: return "Red";
+            case CrystalColor.Green: return "Green";
+            case CrystalColor.Blue: return "Blue";
+            case CrystalColor.White: return "White";
+            default: return "unknown";
+        }
+    }
 
-    // }
+    this.addCardHistory = function(color)
+    {
+        var color = this.getColorString(color).toLowerCase();
+        var elm = document.createElement("div");
+        elm.setAttribute("class", color + "-card");
 
-    // redraw UI
+        this.cardHistory.appendChild(elm);
+    }
+
+    this.clearCardHistory = function()
+    {
+        this.cardHistory.innerHTML = "";
+    }
+
+    this.playTurnButton.onclick = function()
+    {
+        if (that.state.getRemainingCardCount() > 0)
+        {
+            var drawn = that.state.playTurn();
+            for (var c of drawn)
+                that.addCardHistory(c);
+
+            that.refreshUI();
+        }
+        else
+        {
+            that.cardCount.innerText = "End of Round";
+        }
+    }
+
+    this.state.prepareDeck();
+    this.clearCardHistory();
     this.refreshUI();
 }
 
 function runTest()
 {
-    var ds = new DummyState([1,2,3,0,0,1,2,0,1,3,0], [1,2,0,0]);
+    var ds = new DummyState([1,2,3,0,0,1,2,0,1,3,0,3,2,1,0,1], [1,2,0,0]);
     ds.prepareDeck();
 
     var turns = 1;
