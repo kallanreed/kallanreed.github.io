@@ -23,7 +23,7 @@ hr {
     display: block;
     margin: 0 auto;
     margin-top: 20px;
-    width: 80%;
+    width: 90%;
     max-width: 400px;
 }
 
@@ -33,13 +33,21 @@ h1 {
     background-color: 0xEEEEEE;
 }
 
+#reset-button {
+    position: relative;
+    float: right;
+    width: 24px;
+    height: 24px;
+    background-image: url("reset.png");
+}
+
 #character-select {
     width: 100%;
     display: flex;
     flex-flow: row wrap;
     justify-content: center;
     align-content: center;
-    margin-bottom: 1em;
+    margin-top: 1em;
 }
 
 #character-select div {
@@ -50,10 +58,7 @@ h1 {
     text-align: center;
     width: 128px;
     height: 128px;
-    margin: 16px;
-}
-
-#character-select div:hover {
+    margin: 8px;
 }
 
 #char1 {
@@ -132,7 +137,7 @@ h1 {
 }
 
 #card-count {
-    font-size: 32pt;
+    font-size: 30pt;
     font-weight: bold;
     margin-top: .125em;
     margin-bottom: .5em;
@@ -201,11 +206,13 @@ h1 {
 }
 
 #new-crystal-select {
-    width: 100%;
+    width: 80%;
     display: flex;
     justify-content: space-around;
     align-content: center;
     margin-top: 1em;
+    margin-left: auto;
+    margin-right: auto;
 }
 
 #new-crystal-select div {
@@ -216,11 +223,13 @@ h1 {
 }
 
 #new-card-select {
-    width: 100%;
+    width: 80%;
     display: flex;
     justify-content: space-around;
     align-content: center;
     margin-top: 1em;
+    margin-left: auto;
+    margin-right: auto;
 }
 
 #new-card-select div {

@@ -15,20 +15,36 @@ function last_of(arr)
     return undefined;
 }
 
-//
-// cards:       array[n]
-// crystals:    array[4]
-//
-function DummyState(cards, crystals)
+function getColorString(color)
 {
-    // set of all cards the player owns
-    this.cards = cards;
+    switch (color)
+    {
+        case CrystalColor.Red: return "Red";
+        case CrystalColor.Green: return "Green";
+        case CrystalColor.Blue: return "Blue";
+        case CrystalColor.White: return "White";
+        default: return "unknown";
+    }
+}
 
-    // all of the crystals the player owns
-    this.crystals = crystals;
+// TODO: add persistence
 
-    // the current deck being played with (derived from cards)
-    this.deck = [];
+function DummyState(character)
+{
+    // the character being played
+    this.character = character;
+
+    // set of all cards the player owns (don't munge original)
+    this.deck = character.deck.slice();
+
+    // all of the crystals the player owns (don't munge original)
+    this.crystals = character.crystals.slice();
+
+    // the current cards being played with (derived from deck)
+    this.currentDeck = [];
+
+    // draw history for the round
+    this.drawHistory = [];
 
     this.addCrystal = function(color)
     {
@@ -42,12 +58,12 @@ function DummyState(cards, crystals)
 
     this.addCard = function(color)
     {
-        this.cards.push(color);
+        this.deck.push(color);
     }
 
     this.getRemainingCardCount = function()
     {
-        return this.deck.length;
+        return this.currentDeck.length;
     }
 
     this.prepareDeck = function()
@@ -55,28 +71,30 @@ function DummyState(cards, crystals)
         console.log("preparing deck...");
 
         // make a copy of the deck
-        this.deck = this.cards.slice();
+        this.currentDeck = this.deck.slice();
+        this.drawHistory = [];
+
         console.log("starting deck: " + this.deck);
 
         // randomize the deck
-        for (var i = 0; i < this.deck.length; i++) {
-            var j = Math.floor(Math.random() * this.deck.length);
+        for (var i = 0; i < this.currentDeck.length; i++) {
+            var j = Math.floor(Math.random() * this.currentDeck.length);
             // swap cards at i, j
-            var temp = this.deck[i];
-            this.deck[i] = this.deck[j];
-            this.deck[j] = temp;
+            var temp = this.currentDeck[i];
+            this.currentDeck[i] = this.currentDeck[j];
+            this.currentDeck[j] = temp;
         }
 
-        console.log("randomized deck: " + this.deck);        
+        console.log("randomized deck: " + this.currentDeck);        
     }
 
     this.drawCards = function(count)
     {
         var drawn = [];
 
-        while (count && this.deck.length)
+        while (count && this.currentDeck.length)
         {
-            var card = this.deck.pop();
+            var card = this.currentDeck.pop();
             console.log("drew card: " + card);
             drawn.push(card);
             count--;
@@ -87,14 +105,14 @@ function DummyState(cards, crystals)
 
     this.playTurn = function()
     {
-        if (this.deck.length == 0)
+        if (this.currentDeck.length == 0)
             return; // declare end of round
 
         // draw three cards
         var drawn = this.drawCards(3);
 
-        // if we have crystals the color of the last card
-        // draw that many more cards
+        // if we have crystals the same color as the last
+        // card drawn, draw that many more cards.
         var last = last_of(drawn);
         if (last !== undefined)
         {
@@ -104,28 +122,24 @@ function DummyState(cards, crystals)
         }
 
         console.log("turn cards: " + drawn);
+        this.drawHistory.push(drawn);
         return drawn;
     }
 
     this.isEndOfRound = function()
     {
-        return this.deck.length === 0;
+        return this.currentDeck.length === 0;
     }
 
     this.toString = function()
     {
-        return "Crystals " + 
-            this.crystals[CrystalColor.Red] + ", " +
-            this.crystals[CrystalColor.Blue] + ", " +
-            this.crystals[CrystalColor.Green] + ", " +
-            this.crystals[CrystalColor.White] + "\n" +
-            "Cards: " + this.cards + "\n" +
-            "Deck: " + this.deck;
+        return JSON.stringify(this);
     }
 }
 
 function UIContext()
 {
+    // screens
     this.screen1 = document.getElementById("screen1");
     this.screen2 = document.getElementById("screen2");
     this.screen3 = document.getElementById("screen3");
@@ -172,6 +186,7 @@ function UIContext()
         document.getElementById("new-card-white"),
     ]
     
+    this.resetButton = document.getElementById("reset-button");
     this.state = null;
     var that = this;
 
@@ -181,19 +196,19 @@ function UIContext()
         {
             name: "Norowas",
             deck: [0,0,0,0,1,1,1,1,2,2,2,2,3,3,3,3],
-            crystals: [2,0,0,1],
+            crystals: [0,1,0,2],
             portrait: "content/norowas.png"
         },
         {
             name: "Tovak",
             deck: [0,0,0,0,1,1,1,1,2,2,2,2,3,3,3,3],
-            crystals: [2,0,0,1],
+            crystals: [1,0,2,0],
             portrait: "content/tovak.png"
         },
         {
             name: "Goldyx",
             deck: [0,0,0,0,1,1,1,1,2,2,2,2,3,3,3,3],
-            crystals: [2,0,0,1],
+            crystals: [0,2,1,0],
             portrait: "content/goldyx.png"
         },
         {
@@ -210,7 +225,7 @@ function UIContext()
         var c = that.characters[charIndex];
         console.log("selected " + c.name);
 
-        this.state = new DummyState(c.deck, c.crystals);
+        this.state = new DummyState(c);
         this.updateRoundUI();
                 
         this.characterName.innerText = c.name;
@@ -255,19 +270,6 @@ function UIContext()
         this.showItemInItems(this.endRoundButton, this.mainButtons);
     }
 
-    // TODO: move out
-    this.getColorString = function(color)
-    {
-        switch (color)
-        {
-            case CrystalColor.Red: return "Red";
-            case CrystalColor.Green: return "Green";
-            case CrystalColor.Blue: return "Blue";
-            case CrystalColor.White: return "White";
-            default: return "unknown";
-        }
-    }
-
     this.clearCardHistory = function()
     {
         this.cardHistory.innerHTML = "";
@@ -282,7 +284,7 @@ function UIContext()
 
     this.addCardHistory = function(color, container)
     {
-        var color = this.getColorString(color).toLowerCase();
+        var color = getColorString(color).toLowerCase();
         var elm = document.createElement("div");
         elm.setAttribute("class", color + "-card");
         container.appendChild(elm);
@@ -310,6 +312,15 @@ function UIContext()
         that.showItemInItems(that.screen3, that.screens);
     }
 
+    this.resetButton.onclick = function()
+    {
+        if(!confirm("Pick a new character?"))
+            return;
+
+        that.state = null;
+        that.showItemInItems(that.screen1, that.screens);
+    }
+
     // TODO: de-dupe code
     // character selection handler and binding
     this.handleCharacterSelect = function()
@@ -328,7 +339,7 @@ function UIContext()
     // crystal selection handler and binding
     this.handleCrystalSelect = function()
     {
-        console.log("adding crystal " + that.getColorString(this.colorTag));
+        console.log("adding crystal " + getColorString(this.colorTag));
         that.state.addCrystal(this.colorTag);
         that.showItemInItems(that.screen4, that.screens);        
     }
@@ -343,7 +354,7 @@ function UIContext()
     // card selection handler and binding
     this.handleCardSelect = function()
     {
-        console.log("adding card " + that.getColorString(this.colorTag));
+        console.log("adding card " + getColorString(this.colorTag));
         that.state.addCard(this.colorTag);
         that.showItemInItems(that.screen2, that.screens);
         that.updateRoundUI();
@@ -361,7 +372,11 @@ function UIContext()
 
 function runTest()
 {
-    var ds = new DummyState([1,2,3,0,0,1,2,0,1,3,0,3,2,1,0,1], [1,2,0,0]);
+    var ds = new DummyState({
+        name: "Deck Test",
+        deck: [0,0,0,0,1,1,1,1,2,2,2,2,3,3,3,3],
+        crystals: [1,2,0,0]
+    });
     ds.prepareDeck();
 
     var turns = 1;
