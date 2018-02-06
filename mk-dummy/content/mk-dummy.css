@@ -1,11 +1,21 @@
 body {
     font-family: Verdana, Geneva, Tahoma, sans-serif;
     margin: 0px;
+    background-color: rgb(17, 2, 2);
+    color: whitesmoke;
 }
 
 hr {
-    border-top: 1px dotted #AAAAAA;
+    height: 1px;
+    background-color: #555;
+    border-top: 1px dotted #555;
     margin: 0px;
+    border: 0px;
+}
+
+.hidden {
+    visibility: hidden;
+    display: none;
 }
 
 #content {
@@ -15,17 +25,74 @@ hr {
     margin-top: 20px;
     width: 80%;
     max-width: 400px;
-    border: 1px solid #AAAAAA;
 }
 
 h1 {
     font-size: 14pt;
     margin-bottom: 1em;
+    background-color: 0xEEEEEE;
+}
+
+#character-select {
+    width: 100%;
+    display: flex;
+    flex-flow: row wrap;
+    justify-content: center;
+    align-content: center;
+    margin-bottom: 1em;
+}
+
+#character-select div {
+    color: white;
+    text-shadow: 1px 1px 2px #222;
+    font-weight: bold;
+    line-height: 228px;
+    text-align: center;
+    width: 128px;
+    height: 128px;
+    margin: 16px;
+}
+
+#character-select div:hover {
+}
+
+#char1 {
+    background-image: url("norowas.png");
+}
+
+#char2 {
+    background-image: url("tovak.png");
+}
+
+#char3 {
+    background-image: url("goldyx.png");
+}
+
+#char4 {
+    background-image: url("arythea.png");
+}
+
+/* portrait and inventory */
+#character-group {
+    width: 100%;
+    display: flex;
+    flex-flow: row;
+    align-content: center;
+    justify-content: center;    
+}
+
+#portrait {
+    display: inline-flex;
+    width: 128px;
+    height: 128px;
+    margin-right: 20px;
 }
 
 #crystal-area {
-    width: 100%;
-    display: flex;
+    width: 128px;
+    height: 128px;
+    display: inline-flex;
+    flex-flow: row wrap;
     justify-content: space-around;
     margin-bottom: 1em;
 }
@@ -33,24 +100,27 @@ h1 {
 #crystal-area div {
     width: 64px;
     height: 64px;
-    display: inline-flex;
+    color: white;
+    text-shadow: 1px 1px 3px black;
+    font-weight: bold;
+    line-height: 90px;
     text-align: center;
     font-size: 16pt;
 }
 
-#red-count {
+.red-crystal {
     background-image: url("red.png");
 }
 
-#green-count {
+.green-crystal {
     background-image: url("green.png");
 }
 
-#blue-count {
+.blue-crystal {
     background-image: url("blue.png");
 }
 
-#white-count {
+.white-crystal {
     background-image: url("white.png");
 }
 
@@ -62,39 +132,56 @@ h1 {
 }
 
 #card-count {
-    font-size: 24pt;
-    margin-top: .5em;
+    font-size: 32pt;
+    font-weight: bold;
+    margin-top: .125em;
     margin-bottom: .5em;
 }
 
 #card-history {
     width: 100%;
-    height: 32px;
+    height: 64px;
     display: flex;
     justify-content: center;
+    flex-flow: row wrap;
 }
 
+/* turn container */
 #card-history div {
-    width: 24px;
+    display: inline-block;
+    margin-right: 10px;
+}
+
+/* history card */
+#card-history div div {
+    width: 23px;
     height: 32px;
     display: inline-block;
-    flex: 0 1 auto;
+    flex: 0 0 auto;
     margin: 0px;
 }
 
 .red-card {
+    background-position: center;
+    background-repeat: no-repeat;
     background-image: url("red-card.png");
 }
 
 .green-card {
+    background-position: center;
+    background-repeat: no-repeat;
     background-image: url("green-card.png");
 }
 
 .blue-card {
+    background-position: center;
+    background-repeat: no-repeat;
     background-image: url("blue-card.png");
 }
 
 .white-card {
+    background-position: center;
+    background-repeat: no-repeat;
     background-image: url("white-card.png");
 }
 
@@ -108,6 +195,37 @@ h1 {
     width: 100%;
 }
 
-#play-turn-button {
+#button-area button {
     flex: 1 0 auto;
+    height: 32px;
+}
+
+#new-crystal-select {
+    width: 100%;
+    display: flex;
+    justify-content: space-around;
+    align-content: center;
+    margin-top: 1em;
+}
+
+#new-crystal-select div {
+    width: 64px;
+    height: 64px;
+    text-align: center;
+    font-size: 16pt;
+}
+
+#new-card-select {
+    width: 100%;
+    display: flex;
+    justify-content: space-around;
+    align-content: center;
+    margin-top: 1em;
+}
+
+#new-card-select div {
+    width: 64px;
+    height: 64px;
+    text-align: center;
+    font-size: 16pt;
 }

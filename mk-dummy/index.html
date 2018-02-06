@@ -16,32 +16,72 @@
     </head>
     <body>
         <div id="content">
-            <h1>Mage Knight Dummy Player</h1>
-            <div id="crystal-area">
-                <div id="red-count" title="Red Crystals">0</div>
-                <div id="green-count" title="Green Crystals">0</div>
-                <div id="blue-count" title="Blue Crystals">0</div>
-                <div id="white-count" title="White Crystals">0</div>
-            </div>
-            <hr />
-            <div id="card-area">
-                <div>Cards Remaining</div>
-                <div id="card-count">0</div>
-                <div id="card-history">
-                    <div class="red-card"></div>
-                    <div class="green-card"></div>
-                    <div class="blue-card"></div>
-                    <div class="white-card"></div>
+            <div id="screen1">
+                <h1>Mage Knight Dummy Player</h1>
+                <div>Select a character.</div>
+                <div id="character-select">
+                    <div id="char1" title="Norowas">Norowas</div>
+                    <div id="char2" title="Tovak">Tovak</div>
+                    <div id="char3" title="Goldyx">Goldyx</div>
+                    <div id="char4" title="Arythea">Arythea</div>
                 </div>
             </div>
-            <hr />
-            <div id="button-area">
-                <button id="play-turn-button" title="Play Turn">Play Turn</button>
+            <div id="screen2">
+                <h1 id="character-name">Character</h1>
+                <div id="character-group">
+                    <div id="portrait"></div>
+                    <div id="crystal-area">
+                        <div id="red-count" class="red-crystal" title="Red Crystals">0</div>
+                        <div id="green-count" class="green-crystal" title="Green Crystals">0</div>
+                        <div id="blue-count" class="blue-crystal" title="Blue Crystals">0</div>
+                        <div id="white-count" class="white-crystal" title="White Crystals">0</div>
+                    </div>
+                </div>
+                <hr />
+                <div id="card-area">
+                    <div>Cards Remaining</div>
+                    <div id="card-count">0</div>
+                    <div id="card-history">
+                        <div>
+                            <div class="red-card"></div>
+                            <div class="green-card"></div>
+                        </div>
+                        <div>
+                            <div class="blue-card"></div>
+                            <div class="white-card"></div>
+                        </div>
+
+                    </div>
+                </div>
+                <div id="button-area">
+                    <button id="play-turn-button" title="Play Turn">Play Turn</button>
+                    <button id="end-round-button" title="End Round">End Round</button>
+                </div>
+            </div>
+            <div id="screen3">
+                <h1>Add Mana Crystal</h1>
+                <div>Choose a crystal to add.</div>
+                <div id="new-crystal-select">
+                    <div id="new-mana-red" class="red-crystal" title="Red"></div>
+                    <div id="new-mana-green" class="green-crystal" title="Green"></div>
+                    <div id="new-mana-blue" class="blue-crystal" title="Blue"></div>
+                    <div id="new-mana-white" class="white-crystal" title="White"></div>
+                </div>
+            </div>
+            <div id="screen4">
+                <h1>Add New Card</h1>
+                <div>Choose a card to add.</div>
+                <div id="new-card-select">
+                    <div id="new-card-red" class="red-card" title="Red"></div>
+                    <div id="new-card-green" class="green-card" title="Green"></div>
+                    <div id="new-card-blue" class="blue-card" title="Blue"></div>
+                    <div id="new-card-white" class="white-card" title="White"></div>
+                </div>
             </div>
         </div>
         <script type="text/javascript">
             var context = new UIContext();
-            runTest();
+            //runTest();
         </script>
     </body>
 </html>
