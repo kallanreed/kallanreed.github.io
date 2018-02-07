@@ -6,6 +6,10 @@ var CrystalColor = Object.freeze({
     Red: 0, Green: 1, Blue: 2, White: 3
 });
 
+var Strings = Object.freeze({
+    StorageKey: "mk-dummy-state"
+});
+
 // get the last element of an array
 function last_of(arr)
 {
@@ -15,6 +19,7 @@ function last_of(arr)
     return undefined;
 }
 
+// get the string name for a color
 function getColorString(color)
 {
     switch (color)
@@ -27,7 +32,42 @@ function getColorString(color)
     }
 }
 
-// TODO: add persistence
+// test if persistent is supported
+function supports_html5_storage()
+{
+    try {
+      return 'localStorage' in window && window['localStorage'] !== null;
+    }
+    catch (e) {
+      return false;
+    }
+}
+
+function getSavedState()
+{
+    if (!supports_html5_storage())
+        return null;
+
+    var saved = JSON.parse(localStorage.getItem(Strings.StorageKey));
+
+    if (saved.character === undefined)
+        return null;
+
+    var state = new DummyState({deck:[], crystals:[]});
+    for (var prop in saved)
+        state[prop] = saved[prop];
+    
+    console.log("Loaded state: " + state.toString());
+    return state;
+}
+
+function clearSavedState()
+{
+    if (supports_html5_storage())
+        localStorage.removeItem(String.StorageKey);
+}
+
+// TODO: break out state into a POCO without methods
 
 function DummyState(character)
 {
@@ -49,6 +89,7 @@ function DummyState(character)
     this.addCrystal = function(color)
     {
         this.crystals[color]++;
+        this.save();
     }
 
     this.getCrystalCount = function(color)
@@ -59,6 +100,7 @@ function DummyState(character)
     this.addCard = function(color)
     {
         this.deck.push(color);
+        this.save();
     }
 
     this.getRemainingCardCount = function()
@@ -85,6 +127,7 @@ function DummyState(character)
             this.currentDeck[j] = temp;
         }
 
+        this.save();
         console.log("randomized deck: " + this.currentDeck);        
     }
 
@@ -95,11 +138,13 @@ function DummyState(character)
         while (count && this.currentDeck.length)
         {
             var card = this.currentDeck.pop();
-            console.log("drew card: " + card);
             drawn.push(card);
             count--;
+
+            console.log("drew card: " + card);
         }
 
+        // Save here too?
         return drawn;
     }
 
@@ -121,8 +166,10 @@ function DummyState(character)
             drawn.push(...this.drawCards(crystalCount));
         }
 
-        console.log("turn cards: " + drawn);
         this.drawHistory.push(drawn);
+        this.save();
+
+        console.log("turn cards: " + drawn);
         return drawn;
     }
 
@@ -134,6 +181,12 @@ function DummyState(character)
     this.toString = function()
     {
         return JSON.stringify(this);
+    }
+
+    this.save = function()
+    {
+        if (supports_html5_storage())
+            localStorage.setItem(Strings.StorageKey, this.toString());
     }
 }
 
@@ -222,20 +275,31 @@ function UIContext()
     // sets up the main screen for the first time
     this.initialize = function(charIndex)
     {
-        var c = that.characters[charIndex];
+        var c = this.characters[charIndex];
         console.log("selected " + c.name);
 
         this.state = new DummyState(c);
-        this.updateRoundUI();
-                
-        this.characterName.innerText = c.name;
-        this.characterPortrait.style.backgroundImage = "url('" + c.portrait + "')";
+        this.updateCharacterUI(c);
+        this.startNewRound();
     }
 
-    // shuffle deck, update crystal counts, and other per-round UI
-    this.updateRoundUI = function()
+    // shuffle deck and other pre-round preparation
+    this.startNewRound = function()
     {
         this.state.prepareDeck();
+        this.updateRoundUI();
+    }
+
+    // set the character information on the main screen
+    this.updateCharacterUI = function(character)
+    {
+        this.characterName.innerText = character.name;
+        this.characterPortrait.style.backgroundImage = "url('" + character.portrait + "')";
+    }
+
+    // clear history, update crystal counts, and other per-round UI
+    this.updateRoundUI = function()
+    {
         this.clearCardHistory();
 
         this.redCount.innerText = this.state.getCrystalCount(CrystalColor.Red);
@@ -273,6 +337,16 @@ function UIContext()
     this.clearCardHistory = function()
     {
         this.cardHistory.innerHTML = "";
+    }
+
+    this.reloadCardHistory = function()
+    {
+        for (var turn of this.state.drawHistory)
+        {
+            var container = this.addTurnContainer();
+            for (var card of turn)
+                this.addCardHistory(card, container);
+        }
     }
 
     this.addTurnContainer = function()
@@ -318,7 +392,23 @@ function UIContext()
             return;
 
         that.state = null;
+        clearSavedState();
         that.showItemInItems(that.screen1, that.screens);
+    }
+
+    this.reloadFromSavedState = function()
+    {
+        var s = getSavedState();
+
+        // nothing saved, continue as new instance
+        if (s === null)
+            return;
+
+        this.state = s;
+        this.updateCharacterUI(this.state.character);
+        this.updateRoundUI();
+        this.reloadCardHistory();
+        this.showItemInItems(this.screen2, this.screens);
     }
 
     // TODO: de-dupe code
@@ -357,7 +447,7 @@ function UIContext()
         console.log("adding card " + getColorString(this.colorTag));
         that.state.addCard(this.colorTag);
         that.showItemInItems(that.screen2, that.screens);
-        that.updateRoundUI();
+        that.startNewRound();
     }
 
     for (var i = 0; i < this.cardButtons.length; i++)
@@ -368,6 +458,7 @@ function UIContext()
     }
 
     this.showItemInItems(this.screen1, this.screens);
+    this.reloadFromSavedState();
 }
 
 function runTest()
