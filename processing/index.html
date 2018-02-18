@@ -1,18 +1,32 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <meta name="keywords" content="processing">
+        <!-- Global site tag (gtag.js) - Google Analytics -->
+        <script async src="https://www.googletagmanager.com/gtag/js?id=UA-114278525-1"></script>
+        <script>
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+
+            gtag('config', 'UA-114278525-1');
+        </script>
+        
+        <meta name="keywords" content="processing life fractal mandelbrot">
         <meta name="author" content="Kyle Reed">
         <title>Processing Projects</title>
+        <link rel="stylesheet" type="text/css" href="/content/style.css" />
     </head>
     <body>
         <div>
-            <h1>Processing Projects</h1>
-            <ul>
-                <li><a href='life/life_01.html' title='Life 0.1'>Life 0.1 - Pond Simulator</a></li>
-                <li><a href='life/life_02.html' title='Life 0.2'>Life 0.2 - Pond Simulator</a></li>
-                <li><a href='fractal/fractal.html' title='Fractal Explorer'>Fractal Explorer</a></li>
-            </ul>
+            <h1>Processing.js Projects</h1>
+            <div id="tagline">Toys and visualizations built with Processing.js</div>
+            <div id="projects">
+                <ul>
+                    <li><a href='life/life_01.html' title='Life 0.1'>Life 0.1 - Pond Simulator</a></li>
+                    <li><a href='life/life_02.html' title='Life 0.2'>Life 0.2 - Pond Simulator</a></li>
+                    <li><a href='fractal/fractal.html' title='Fractal Explorer'>Fractal Explorer</a></li>
+                </ul>
+            </div>
         </div>
     </body>
 </html>

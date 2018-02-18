@@ -1,0 +1,38 @@
+body {
+    font-family: Verdana, Geneva, Tahoma, sans-serif;
+    margin-top: 5em;
+    margin-left: 5em;
+}
+
+h1 {
+    font-size: 34pt;
+    margin-bottom: 0.25em;    
+}
+
+#tagline {
+    font-size: smaller;
+    font-style: italic;
+    display: block;
+}
+
+#projects {
+    font-family: "Trebuchet MS", Helvetica, sans-serif;
+    margin-top: 2em;
+    margin-left: 2em;
+}
+
+#projects li {
+    margin-bottom: .75em;
+    list-style: lower-greek;
+}
+
+#projects a {
+    letter-spacing: 2px;
+    color: black;
+    text-decoration: none;
+}
+
+#projects a:hover {
+    text-decoration: underline;
+}
+

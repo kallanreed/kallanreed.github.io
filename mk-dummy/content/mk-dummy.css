@@ -195,14 +195,15 @@ h1 {
 }
 
 #button-area {
-    display: inline-flex;
+    display: flex;
     height: 32px;
-    width: 100%;
+    width: 60%;
+    margin: 0 auto;
 }
 
 #button-area button {
     flex: 1 0 auto;
-    height: 32px;
+    height: 100%;
 }
 
 #new-crystal-select {
