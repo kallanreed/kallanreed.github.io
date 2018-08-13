@@ -106,15 +106,19 @@ class ReSpeller
         t.add("tʃ",  {s: "ch",  isVowel: false });
         t.add("h",   {s: "h",   isVowel: false });
         t.add("hw",  {s: "wh",  isVowel: false });
+        t.add("ʤ",   {s: "j",   isVowel: false });
         t.add("dʒ",  {s: "j",   isVowel: false });
         t.add("x",   {s: "kh",  isVowel: false });
-        t.add("ɡ",   {s: "gh",  isVowel: false });
+        t.add("g",   {s: "gh",  isVowel: false });
+        t.add("ɡ",   {s: "gh",  isVowel: false }); // not a regular 'g'
         t.add("ŋ",   {s: "ng",  isVowel: false });
         t.add("ʃ",   {s: "sh",  isVowel: false });
         t.add("θ",   {s: "th",  isVowel: false });
         t.add("ð",   {s: "dh",  isVowel: false });
         t.add("j",   {s: "y",   isVowel: false });
         t.add("ʒ",   {s: "zh",  isVowel: false });
+
+        // consonants (normal characters)
         t.add("b",   {s: "b",   isVowel: false });
         t.add("d",   {s: "d",   isVowel: false });
         t.add("f",   {s: "f",   isVowel: false });
@@ -134,28 +138,36 @@ class ReSpeller
         t.add("æ",   {s: "ă",   isVowel: true });
         t.add("eɪ",  {s: "ay",  isVowel: true });
         t.add("ɛər", {s: "air", isVowel: true });
+        t.add("ɑ",   {s: "ah",  isVowel: true });
         t.add("ɑː",  {s: "ah",  isVowel: true });
+        t.add("ɑr",  {s: "ar",  isVowel: true });
         t.add("ɑːr", {s: "ar",  isVowel: true });
-        t.add("ɛ",   {s: "ĕ",   isVowel: true });
+        t.add("ɛ",   {s: "eh",  isVowel: true });
+        t.add("i",   {s: "ee",  isVowel: true });
         t.add("iː",  {s: "ee",  isVowel: true });
         t.add("ɪər", {s: "eer", isVowel: true });
-        t.add("ɪ",   {s: "ĭ",   isVowel: true });
-        t.add("aɪ",  {s: "eye", isVowel: true });
-        t.add("ɒ",   {s: "ŏ",   isVowel: true });
+        t.add("ɪ",   {s: "ih",  isVowel: true });
+        t.add("aɪ",  {s: "y",   isVowel: true });
+        t.add("ɒ",   {s: "ah",  isVowel: true });
         t.add("oʊ",  {s: "oh",  isVowel: true });
+        t.add("ɔ",   {s: "aw",  isVowel: true });
         t.add("ɔː",  {s: "aw",  isVowel: true });
+        t.add("ɔr",  {s: "ohr", isVowel: true });
         t.add("ɔːr", {s: "ohr", isVowel: true });
         t.add("ɔɪ",  {s: "oy",  isVowel: true });
         t.add("ʊ",   {s: "uu",  isVowel: true });
         t.add("ʊər", {s: "oor", isVowel: true });
+        t.add("u",   {s: "oo",  isVowel: true });
         t.add("uː",  {s: "oo",  isVowel: true });
         t.add("aʊ",  {s: "ow",  isVowel: true });
         t.add("ʌ",   {s: "uh",  isVowel: true });
         t.add("ɜ",   {s: "er",  isVowel: true });
+        t.add("ɜr",  {s: "ur",  isVowel: true });
         t.add("ɜːr", {s: "ur",  isVowel: true });
         t.add("ə",   {s: "ah",  isVowel: true });
         t.add("ər",  {s: "er",  isVowel: true });
-        t.add("juː", {s: "ew",  isVowel: true });
+        t.add("ju",  {s: "yew", isVowel: true });
+        t.add("juː", {s: "yew", isVowel: true });
 
         this.mapping = t;
     }
@@ -166,6 +178,7 @@ class ReSpeller
         let i = 0;
         let stressed = false;
         let hasStressedVowel = false;
+        let hasStressedConsonant = false;
 
         // TODO: rewrite without slice
         // The syllable stress detection isn't perfect
@@ -177,6 +190,7 @@ class ReSpeller
             {
                 stressed = true;
                 hasStressedVowel = false;
+                hasStressedConsonant = false;
                 str = str.slice(1);
                 continue;
             }
@@ -194,21 +208,25 @@ class ReSpeller
                 str = str.slice(mapped.pathLength);
 
                 // if we see a new consonant after a stressed vowel
-                // assume this is the start of a new syllable
-                if (!mapped.data.isVowel && hasStressedVowel)
+                // and stressed consonant, assume a new syllable
+                if (!mapped.data.isVowel && hasStressedVowel && hasStressedConsonant)
                 {
                     stressed = false;
                     hasStressedVowel = false;
+                    hasStressedConsonant = false;
                 }
 
+                // show stressed syllable in uppercase
                 if (stressed)
                     out += mapped.data.s.toUpperCase();
                 else
                     out += mapped.data.s;
 
-                // if stressed, note we've seen a vowel in this syllable
+                // rough syllable tracking
                 if (mapped.data.isVowel && stressed)
                     hasStressedVowel = true;
+                else if (!mapped.data.isVowel && stressed)
+                    hasStressedConsonant = true;
             }
         }
 
