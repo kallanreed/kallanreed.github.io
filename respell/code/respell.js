@@ -112,6 +112,7 @@ class ReSpeller
         t.add("g",   {s: "gh",  isVowel: false });
         t.add("ɡ",   {s: "gh",  isVowel: false }); // not a regular 'g'
         t.add("ŋ",   {s: "ng",  isVowel: false });
+        t.add("ɹ",   {s: "r",   isVowel: false });
         t.add("ʃ",   {s: "sh",  isVowel: false });
         t.add("θ",   {s: "th",  isVowel: false });
         t.add("ð",   {s: "dh",  isVowel: false });
