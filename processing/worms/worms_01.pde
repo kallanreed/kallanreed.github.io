@@ -266,6 +266,35 @@ GridMap getObstacleMap()
   return new GridMap(cells, tiles);
 }
 
+// Gets a big map playground.
+GridMap getMazeMap()
+{
+  Tile[] tiles = {
+    new Tile(TK_WALL, color(60)),
+    new Tile(TK_PATH, color(255, 10)),
+    new Tile(TK_BEGN, color(200, 10)),
+    new Tile(TK_GOAL, color(0, 128, 0, 10))
+  };
+  
+  int[][] cells = {
+    { 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+    { 0, 1, 0, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0 },
+    { 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0, 1, 0 },
+    { 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 1, 0 },
+    { 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 1, 0, 0 },
+    { 0, 1, 0, 1, 1, 1, 0, 1, 0, 0, 1, 0, 0 },
+    { 0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 1, 1, 0 },
+    { 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0 },
+    { 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 1, 1, 0 },
+    { 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 0 },
+    { 0, 1, 0, 1, 0, 1, 0, 1, 1, 0, 1, 1, 3 },
+    { 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0 },
+    { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }
+  };
+  
+  return new GridMap(cells, tiles);
+}
+
 // ENDREGION: Map Code
 
 
@@ -616,7 +645,8 @@ void setup()
 void prepare_map()
 {
   //gMap = getSimpleMap();
-  gMap = getObstacleMap();
+  //gMap = getObstacleMap();
+  gMap = getMazeMap();
   GridGraphBuilder builder = new GridGraphBuilder(gMap);
   gGraph = builder.build();
   
