@@ -536,6 +536,10 @@ class Worm
     {
       init.behaviors[i].d_theta *= (1 + random(-mutation_factor, mutation_factor));
       init.behaviors[i].count *= (1 + random(-mutation_factor, mutation_factor));
+      
+      // Randomize the end behaviors a little more.
+      if (random(1) < (i / 100))
+        init.behaviors[i].d_theta = normalize_theta(init.behaviors[i].d_theta + random(-PI, PI));
     }
   }
   
@@ -757,8 +761,6 @@ void draw()
 
 void mouseClicked()
 {
-  cur_iter = 0;
-
   if (mouseButton == LEFT)
   {
     center = new PVector(mouseX, mouseY);
@@ -768,6 +770,10 @@ void mouseClicked()
     goal = new PVector(mouseX, mouseY);
     updateDestination(getCellAtPoint((int)goal.x, (int)goal.y));
   }
+  
+  // Restart simulation.
+  prepare_first_run();
+  loop();
 }
 
 void keyPressed()
