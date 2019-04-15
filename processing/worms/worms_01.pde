@@ -757,8 +757,12 @@ void draw()
 
 void mouseClicked()
 {
+  cur_iter = 0;
+
   if (mouseButton == LEFT)
+  {
     center = new PVector(mouseX, mouseY);
+  }
   else if (mouseButton == RIGHT)
   {
     goal = new PVector(mouseX, mouseY);
