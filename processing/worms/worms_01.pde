@@ -367,7 +367,7 @@ PVector getCellCenter(Cell c)
 // =========
 
 // Number of worms to start each iteration.
-final int WORM_COUNT = 100;
+final int WORM_COUNT = 500;
 
 // Max cap on the number of ticks per generation.
 final int GEN_ITER = 50000;
