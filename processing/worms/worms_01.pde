@@ -427,8 +427,10 @@ float score(WormState s)
 
   if (c == null || c.tile.isWall())
     return MAX_SCORE;
+
+  float speed_bonus = (float)s.behaviors.length / (s.tot_bhv + 1);
   
-  return 10000 * c.score + dist2(goal, s.pos);
+  return 10000 * c.score + dist2(goal, s.pos) * speed_bonus;
 }
 
 // Equal probability event.
@@ -473,9 +475,8 @@ class Behavior
     count = _cnt;
   }
   
-  //float d_theta = random(-PI / 16, PI / 16);
-  float d_theta = get_quantized_theta(random(-PI, PI), random(2, 8));
-  int count = (int)(random(4, 128));
+  float d_theta = get_quantized_theta(random(-PI, PI), random(2, 32));
+  int count = (int)(random(16, 64));
 }
 
 // Copies behaviors from one list to another.
@@ -497,10 +498,11 @@ class WormState
 {
   PVector pos;
   PVector vel; // x = dir, y = speed
-  Behavior[] behaviors = new Behavior[13];
+  Behavior[] behaviors = new Behavior[64];
+  int fixed_bhv = 0;  // Fixed behaviors that are conserved.
+  int tot_bhv = 0;
   int idx_bhv = 0;
-  int cur_count = 0;  // number of steps in a bahavior direction.
-  int dir_mult = 1;   // direction multiplier
+  int cur_count = 0;  // Number of steps in a behavior direction.
   int steps = 0;
   boolean alive = true;
   float min_score = MAX_SCORE;
@@ -512,9 +514,10 @@ class WormState
     s.pos = new PVector(pos.x, pos.y);
     s.vel = new PVector(vel.x, vel.y);
     copyBehaviors(behaviors, s.behaviors);
+    s.fixed_bhv = fixed_bhv;
+    s.tot_bhv = tot_bhv;
     s.idx_bhv = idx_bhv;
     s.cur_count = cur_count;
-    s.dir_mult = dir_mult;
     s.steps = steps;
     s.alive = alive;
     s.min_score = min_score;
@@ -547,7 +550,14 @@ class Worm
     init.pos = new PVector(start.x, start.y);
     init.vel = new PVector(pick_one(parent_a.init.vel.x, parent_b.init.vel.x),
                            pick_one(parent_a.init.vel.y, parent_b.init.vel.y));
-    copyBehaviors(coin_flip() ? parent_a.init.behaviors : parent_b.init.behaviors, init.behaviors);
+    init.fixed_bhv = min(parent_a.init.fixed_bhv, parent_b.init.fixed_bhv);
+
+    // Randomly inherit behaviors from parents.
+    for (int i = 0; i < init.behaviors.length;++i)
+    {
+      Behavior to_copy = coin_flip() ? parent_a.init.behaviors[i] : parent_b.init.behaviors[i];
+      init.behaviors[i] = new Behavior(to_copy);
+    }
     
     mutate();    
     
@@ -558,17 +568,19 @@ class Worm
   // Mutates the movement properties of the worm.
   void mutate()
   {
-    init.vel.x *= (1 + random(-mutation_factor, mutation_factor));
+    // Mutate starting direction a tiny bit.
+    init.vel.x *= (1 + random(-mutation_factor, mutation_factor)) * 0.1;
+
+    // Mutate speed a little.
     init.vel.y *= (1 + random(-mutation_factor, mutation_factor));
     
-    for (int i = 0; i < init.behaviors.length; ++i)
+    // Mutate behavior genes, conserving early genes.
+    for (int i = init.fixed_bhv; i < init.behaviors.length; ++i)
     {
-      init.behaviors[i].d_theta *= (1 + random(-mutation_factor, mutation_factor));
-      init.behaviors[i].count *= (1 + random(-mutation_factor, mutation_factor));
-      
-      // Randomize the end behaviors a little more.
-      if (random(1) < (i / 100))
-        init.behaviors[i].d_theta = normalize_theta(init.behaviors[i].d_theta + random(-PI, PI));
+      double cos_ray = (random(1) < 0.1) ? 1 : random(100);
+
+      init.behaviors[i].d_theta *= (1 + random(-mutation_factor, mutation_factor) * cos_ray);
+      init.behaviors[i].count *= (1 + random(-mutation_factor, mutation_factor) * cos_ray);
     }
   }
   
@@ -587,12 +599,14 @@ class Worm
       s.min_score = cur_score;
 
     s.alive = in_bounds(s.pos) && !in_wall(s.pos);
+
     if (at_goal(s.pos))
     {
       println("WIN");
-      noLoop();
+      winner = this;
+      s.alive = false;
     }
-      
+
     return s.alive;
   }
   
@@ -602,16 +616,14 @@ class Worm
     // TODO: actually move the correct distance
     s.pos.x += cos(s.vel.x) * s.vel.y;
     s.pos.y += sin(s.vel.x) * s.vel.y;
-    //s.vel.x = normalize_theta(s.vel.x + (s.dir_mult * s.behaviors[s.idx_bhv].d_theta));
-    s.vel.x = normalize_theta(s.vel.x + (s.dir_mult * PI / 360));
+    //s.vel.x = normalize_theta(s.vel.x);
     
     if (--s.cur_count < 0)
     {
+      s.tot_bhv++;
       s.idx_bhv = (s.idx_bhv + 1) % s.behaviors.length;
-      s.vel.x = s.behaviors[s.idx_bhv].d_theta * s.dir_mult;
-      
+      s.vel.x = s.behaviors[s.idx_bhv].d_theta;
       s.cur_count = s.behaviors[s.idx_bhv].count;
-      s.dir_mult *= -1;
     }
   }
   
@@ -620,6 +632,16 @@ class Worm
   {
     init.clone_into(s);
     s.draw_color = color(0, 255, 255);
+  }
+
+  // Conserve the genes for an iteration.
+  void fix_behavior()
+  {
+    if (s.tot_bhv > init.fixed_bhv)
+    {
+      init.fixed_bhv = s.tot_bhv;
+      print("Fixing to "); println(init.fixed_bhv);
+    }
   }
 }
 
@@ -631,6 +653,7 @@ float last_best = 0;
 int cur_iter = 0;
 int retry_limit = 10;
 int retry_count = 0;
+Worm winner = null;
 PVector center;
 PVector goal;
 
@@ -669,6 +692,7 @@ void prepare_first_run()
   cur_iter = GEN_ITER;
   retry_count = 0;
   worms.clear();
+  winner = null;
 
   for (int i = 0; i < WORM_COUNT; ++i)
     worms.add(new Worm(center));
@@ -678,7 +702,7 @@ void prepare_incr_run()
 {
     cur_iter = GEN_ITER;
   
-  // find the two most successful
+  // Find the two most successful.
   Worm parent_a = (Worm)worms.get(0);
   Worm parent_b = (Worm)worms.get(1);
   
@@ -710,7 +734,11 @@ void prepare_incr_run()
   
   if (retry_count < retry_limit)
   {
-    // try again with the two best worms as seeds.
+    // Conserve early genes.
+    parent_a.fix_behavior();
+    parent_b.fix_behavior();
+
+    // Try again with the two best worms as seeds.
     worms.clear();
     for (int i = 0; i < WORM_COUNT - 2; ++i)
       worms.add(new Worm(center, parent_a, parent_b));
@@ -727,9 +755,19 @@ void prepare_incr_run()
   }
 }
 
+void clear_screen()
+{
+  stroke(200);
+  fill(200);
+  rect(0, 0, width, height);
+}
+
 void draw()
 {  
   boolean any_alive = false;
+
+  if (winner != null)
+    clear_screen();
   
   // Draw map.
   stroke(0);
@@ -754,6 +792,21 @@ void draw()
   stroke(0, 255, 0);
   fill(0, 200, 0);
   ellipse(goal.x, goal.y, GOAL_RADIUS, GOAL_RADIUS);
+
+  // If there's a winner, draw it's path and quit.
+  if (winner != null)
+  {
+    winner.reset();
+    stroke(0, 150, 0);
+    
+    while (winner.tick())
+    {
+      ellipse((int)winner.s.pos.x, (int)winner.s.pos.y, 1, 1);
+    }
+
+    noLoop();
+    return;
+  }
   
   // Draw and update worms.
   for (Worm w : worms)
@@ -775,11 +828,7 @@ void draw()
   // If all are dead or we stalled, start the next iteration.
   if (!any_alive || --cur_iter < 0)
   {
-    // Clear screen.
-    stroke(200);
-    fill(200);
-    rect(0, 0, width, height);
-
+    clear_screen();
     prepare_incr_run();
     
     // Draw stats.
