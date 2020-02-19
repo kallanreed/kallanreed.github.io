@@ -495,6 +495,22 @@ PVector getCellCenter(Cell c)
                      c.pos.row * gCellHeight + gCellHeight / 2);
 }
 
+// Returns true if the transition between from-to is valid.
+bool valid_move(Cell from, Cell to)
+{
+  if (from == null || to == null)
+    return false;
+
+  if (from == to)
+    return true;
+
+  int delta_row = from.pos.row - to.pos.row;
+  int delta_col = from.pos.col - to.pos.col;
+
+  // Don't allow diagonal moves.
+  return delta_row == 0 || delta_col == 0;
+}
+
 // ENDREGION: GridMap Helpers
 
 
@@ -730,8 +746,16 @@ class Worm
     if (!s.alive)
       return false;
 
+    Cell from_cell = getCellAtPoint(s.pos.x, s.pos.y);
     move();
     s.steps++;
+    Cell to_cell = getCellAtPoint(s.pos.x, s.pos.y);
+
+    if (!valid_move(from_cell, to_cell))
+    {
+      s.alive = false;
+      return false;
+    }
 
     float cur_score = score(s);
     if (cur_score < s.min_score)
