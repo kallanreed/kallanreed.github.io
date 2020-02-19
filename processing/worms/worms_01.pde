@@ -45,7 +45,6 @@ class Graph<T>
 // ENDREGION: Graph Code
 
 
-
 //==================
 // REGION: Map Code
 // =================
@@ -54,6 +53,13 @@ final int TK_WALL = 0;
 final int TK_PATH = 1;
 final int TK_BEGN = 2;
 final int TK_GOAL = 3;
+
+final int UNREACHABLE = 256;
+
+final int NBR_E = 0;
+final int NBR_N = 1;
+final int NBR_W = 2;
+final int NBR_S = 3;
 
 // Position of an entry in a GridMap.
 class Position
@@ -114,7 +120,7 @@ class GridMap
     rowCount = tileMap.length;
     colCount = tileMap[0].length;
     cells = new Cell[rowCount][colCount];
-    
+
     for (int r = 0; r < rowCount; ++r)
     {
       for (int c = 0; c < colCount; ++c)
@@ -149,18 +155,14 @@ class GridMap
   
   Cell[] getNeighbors(Cell c)
   {
-    Cell[] neighbors = new Cell[8];
+    Cell[] neighbors = new Cell[4];
     Position p = c.pos;
     
     // Polar style, E first then counter clockwise
-    neighbors[0] = getCell(p.row + 1, p.col);     // E
-    //neighbors[1] = getCell(p.row + 1, p.col + 1); // NE
-    neighbors[2] = getCell(p.row, p.col + 1);     // N
-    //neighbors[3] = getCell(p.row - 1, p.col + 1); // NW
-    neighbors[4] = getCell(p.row - 1, p.col);     // W
-    //neighbors[5] = getCell(p.row - 1, p.col - 1); // SW
-    neighbors[6] = getCell(p.row, p.col - 1);     // S
-    //neighbors[7] = getCell(p.row + 1, p.col - 1); // SE
+    neighbors[NBR_E] = getCell(p.row, p.col + 1);     // E
+    neighbors[NBR_N] = getCell(p.row - 1, p.col);     // N
+    neighbors[NBR_W] = getCell(p.row, p.col - 1);     // W
+    neighbors[NBR_S] = getCell(p.row + 1, p.col);     // S
     
     return neighbors;
   }
@@ -176,9 +178,11 @@ class GridGraphBuilder
   GridGraphBuilder(GridMap map) { this.map = map; }
   
   Graph<Cell> build()
-  { 
-    for (int r = 0; r < gMap.rowCount; ++r)
-      for (int c = 0; c < gMap.colCount; ++c)
+  {
+    nodes.clear();
+
+    for (int r = 0; r < map.rowCount; ++r)
+      for (int c = 0; c < map.colCount; ++c)
         addCell(r, c);
  
     return new Graph(nodes);
@@ -199,7 +203,6 @@ class GridGraphBuilder
       Cell neighbor = neighbors[i];
       if (neighbor == null || neighbor.tile.isWall())
         continue;
-      
       
       node.neighbors.add(getOrAdd(neighbor));
     }
@@ -295,8 +298,57 @@ GridMap getMazeMap()
   return new GridMap(cells, tiles);
 }
 
-// ENDREGION: Map Code
+GridMap generateRandomMap(int rowCount, int colCount)
+{
+  Tile[] tiles = {
+    new Tile(TK_WALL, color(60)),
+    new Tile(TK_PATH, color(255, 10)),
+    new Tile(TK_BEGN, color(200, 10)),
+    new Tile(TK_GOAL, color(0, 128, 0, 10))
+  };
+  
+  int cells[][] = new int[rowCount][colCount];
 
+  for (int r = 0; r < rowCount; ++r)
+    for (int c = 0; c < colCount; ++c)
+      cells[r][c] = coin_flip() ? 1 : 0;
+
+  int startRow = 0;
+  int startCol = int(random(colCount));
+  int goalRow = rowCount - 1;
+  int goalCol = int(random(colCount));
+
+  cells[startRow][startCol] = 2;
+  cells[goalRow][goalCol] = 3;
+  
+  GridMap map = new GridMap(cells, tiles);
+  GridGraphBuilder builder = new GridGraphBuilder(map);
+  Graph<Cell> graph = builder.build();
+
+  Cell start = map.getCell(startRow, startCol);
+  Cell goal = map.getCell(goalRow, goalCol);
+
+  // Iterate until there's a path to the goal.
+  for (int iter = 0; iter < 1000 && !hasPath(graph, start, goal); ++iter)
+  {
+    updateDestinationInt(graph, goal);
+    Cell maxScore = getMaxScoreCell(graph);
+    Cell wall = findWallToSwap(map, maxScore, start);
+
+    wall.tile = map.tiles[TK_PATH];
+    graph = builder.build();
+  }
+
+  // Cull all unreachable nodes from the map.
+  updateDestinationInt(graph, goal);
+  for (Node<Cell> n : graph.getNodes())
+    if (n.item.score == UNREACHABLE)
+      n.item.tile = map.tiles[TK_WALL];
+
+  return map;
+}
+
+// ENDREGION: Map Code
 
 
 // ========================  
@@ -309,27 +361,84 @@ Graph<Cell> gGraph;
 int gCellHeight;
 int gCellWidth;
 
+// Returns true if the Cell is a wall.
+bool isWall(Cell c)
+{
+  return c != null && c.tile.isWall();
+}
+
+// Finds a suitable wall tile to swap for a path.
+Cell findWallToSwap(GridMap m, Cell c, Cell seek)
+{
+  while (!isWall(c))
+  {
+    Cell[] ns = m.getNeighbors(c);
+    Cell east = ns[NBR_E];
+    Cell west = ns[NBR_W];
+    Cell north = ns[NBR_N];
+    Cell south = ns[NBR_S];
+    
+    if (c.pos.col < seek.pos.col && east != null)
+      c = east;
+    else if (c.pos.col > seek.pos.col && west != null)
+      c = west;
+    else if (north != null)
+      c = north;
+    else if (south != null)
+      c = south;
+    else
+      throw new RuntimeException("Can't find wall.");
+  }
+
+  return c;
+}
+
+// Gets a reachable cell with the highest score.
+Cell getMaxScoreCell(Graph<Cell> g)
+{
+  Node<Cell> maxNode = null;
+
+  for (Node<Cell> n : g.getNodes())
+  {
+    if (n.item.score == UNREACHABLE)
+      continue;
+
+    if (maxNode == null || maxNode.item.score < n.item.score)
+      maxNode = n;
+  }
+
+  return maxNode != null ? maxNode.item : null;
+}
+
 // Sets the specified Cell as the goal and updates the
 // traversal scores on all Cells in the global GridMap.
 void updateDestination(Cell c)
 {
+  updateDestinationInt(gGraph, c);
+}
+
+void updateDestinationInt(Graph<Cell> g, Cell c)
+{
   ArrayList<Node<Cell>> unvisited =
-    new ArrayList<Node<Cell>>(gGraph.getNodes());
-  ArrayList<Node<Cell>> workList =
+    new ArrayList<Node<Cell>>(g.getNodes());
+  ArrayList<Node<Cell>> worklist =
     new ArrayList<Node<Cell>>();
-  
-  Node<Cell> dest = gGraph.getNode(c);
+ 
+  Node<Cell> dest = g.getNode(c);
+
+  for (Node<Cell> n : unvisited)
+    n.item.score = UNREACHABLE;
   
   if (dest == null)
     throw new RuntimeException("Cell is not part of the the traversal graph.");
   
   dest.item.score = 0;
-  workList.add(dest);
+  worklist.add(dest);
   
-  while (!workList.isEmpty())
+  while (!worklist.isEmpty())
   {
-    Node<Cell> n = workList.get(0);
-    workList.remove(0);
+    Node<Cell> n = worklist.get(0);
+    worklist.remove(0);
     unvisited.remove(n);
     
     for (Node<Cell> neighbor : n.neighbors)
@@ -337,10 +446,41 @@ void updateDestination(Cell c)
       if (unvisited.contains(neighbor))
       {
         neighbor.item.score = n.item.score + 1;
-        workList.add(neighbor);
+        worklist.add(neighbor);
       }
     }
   }
+}
+
+// Returns true if there's a path from cell a to b.
+bool hasPath(Graph<Cell> g, Cell a, Cell b)
+{
+  ArrayList<Node<Cell>> unvisited =
+    new ArrayList<Node<Cell>>(g.getNodes());
+  ArrayList<Node<Cell>> worklist =
+    new ArrayList<Node<Cell>>();
+
+  Node<Cell> strt = g.getNode(a);
+  Node<Cell> dest = g.getNode(b);
+  worklist.add(strt);
+ 
+  while (!worklist.isEmpty())
+  {
+    Node<Cell> n = worklist.get(0);
+    worklist.remove(0);
+    unvisited.remove(n);
+    
+    for (Node<Cell> neighbor : n.neighbors)
+    {
+      if (neighbor == dest)
+        return true;
+
+      if (unvisited.contains(neighbor))
+        worklist.add(neighbor);
+    }
+  }
+
+  return false;
 }
 
 // Gets the Cell containing the specified pixel.
@@ -356,7 +496,6 @@ PVector getCellCenter(Cell c)
 }
 
 // ENDREGION: GridMap Helpers
-
 
 
 //
@@ -498,7 +637,7 @@ class WormState
 {
   PVector pos;
   PVector vel; // x = dir, y = speed
-  Behavior[] behaviors = new Behavior[64];
+  Behavior[] behaviors = new Behavior[256];
   int fixed_bhv = 0;  // Fixed behaviors that are conserved.
   int tot_bhv = 0;
   int idx_bhv = 0;
@@ -669,7 +808,8 @@ void prepare_map()
 {
   //gMap = getSimpleMap();
   //gMap = getObstacleMap();
-  gMap = getMazeMap();
+  //gMap = getMazeMap();
+  gMap = generateRandomMap(16, 16);
   GridGraphBuilder builder = new GridGraphBuilder(gMap);
   gGraph = builder.build();
   
