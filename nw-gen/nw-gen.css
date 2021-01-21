@@ -1,0 +1,36 @@
+html {
+    background-color: #180b05;
+    color: aliceblue;
+}
+
+#sub-header {
+    font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+    font-size: large;
+}
+
+.lyrics {
+    padding-top: 1em;
+    padding-bottom: 1em;
+    font-style: italic;
+}
+
+.lyrics .committed {
+    color: beige;
+}
+
+.controls {
+    padding-top: 1em;
+    padding-bottom: 1em;
+}
+
+.suggestion-list {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+}
+
+.suggestion-list li {
+    display: inline-flexbox;
+    list-style-type: none;
+    padding-left: 1em;
+}

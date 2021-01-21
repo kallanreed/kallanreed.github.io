@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Nightwish Interactive Lyrics Generator</title>
+    <link type="text/css" rel="stylesheet" href="nw-gen.css" />
+    <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+    <script src="model.js"></script>
+</head>
+
+<body>
+    <div id="header">
+        <img src="header.png" />
+        <div id="sub-header">Interactive Lyrics Generator</div>
+        <div id="app">
+            <div class="lyrics">
+                <div class="committed" v-for="l in lines">{{ l }}</div>
+                <span v-for="l in lyrics">{{ l }} </span>
+            </div>
+            <div class="controls">
+                <input v-model="inputWord" />
+                <button @click="addFromInput">Add</button>
+                <button @click="updateSuggestions(inputWord)">Search</button>
+                <button @click="commitLine">Commit</button>
+                <button @click="clear">Clear</button>
+                <button @click="undo">Undo</button>
+            </div>
+            <div>
+                <ul class="suggestion-list">
+                    <li v-for="s in suggestions" @click="addFromSuggestion(s)">
+                        {{ s }}
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script src="nw-gen.js"></script>
+</body>
+
+</html>
