@@ -45,7 +45,6 @@ class Graph<T>
 // ENDREGION: Graph Code
 
 
-
 //==================
 // REGION: Map Code
 // =================
@@ -54,6 +53,13 @@ final int TK_WALL = 0;
 final int TK_PATH = 1;
 final int TK_BEGN = 2;
 final int TK_GOAL = 3;
+
+final int UNREACHABLE = 256;
+
+final int NBR_E = 0;
+final int NBR_N = 1;
+final int NBR_W = 2;
+final int NBR_S = 3;
 
 // Position of an entry in a GridMap.
 class Position
@@ -114,7 +120,7 @@ class GridMap
     rowCount = tileMap.length;
     colCount = tileMap[0].length;
     cells = new Cell[rowCount][colCount];
-    
+
     for (int r = 0; r < rowCount; ++r)
     {
       for (int c = 0; c < colCount; ++c)
@@ -149,18 +155,14 @@ class GridMap
   
   Cell[] getNeighbors(Cell c)
   {
-    Cell[] neighbors = new Cell[8];
+    Cell[] neighbors = new Cell[4];
     Position p = c.pos;
     
     // Polar style, E first then counter clockwise
-    neighbors[0] = getCell(p.row + 1, p.col);     // E
-    //neighbors[1] = getCell(p.row + 1, p.col + 1); // NE
-    neighbors[2] = getCell(p.row, p.col + 1);     // N
-    //neighbors[3] = getCell(p.row - 1, p.col + 1); // NW
-    neighbors[4] = getCell(p.row - 1, p.col);     // W
-    //neighbors[5] = getCell(p.row - 1, p.col - 1); // SW
-    neighbors[6] = getCell(p.row, p.col - 1);     // S
-    //neighbors[7] = getCell(p.row + 1, p.col - 1); // SE
+    neighbors[NBR_E] = getCell(p.row, p.col + 1);     // E
+    neighbors[NBR_N] = getCell(p.row - 1, p.col);     // N
+    neighbors[NBR_W] = getCell(p.row, p.col - 1);     // W
+    neighbors[NBR_S] = getCell(p.row + 1, p.col);     // S
     
     return neighbors;
   }
@@ -176,9 +178,11 @@ class GridGraphBuilder
   GridGraphBuilder(GridMap map) { this.map = map; }
   
   Graph<Cell> build()
-  { 
-    for (int r = 0; r < gMap.rowCount; ++r)
-      for (int c = 0; c < gMap.colCount; ++c)
+  {
+    nodes.clear();
+
+    for (int r = 0; r < map.rowCount; ++r)
+      for (int c = 0; c < map.colCount; ++c)
         addCell(r, c);
  
     return new Graph(nodes);
@@ -199,7 +203,6 @@ class GridGraphBuilder
       Cell neighbor = neighbors[i];
       if (neighbor == null || neighbor.tile.isWall())
         continue;
-      
       
       node.neighbors.add(getOrAdd(neighbor));
     }
@@ -295,8 +298,57 @@ GridMap getMazeMap()
   return new GridMap(cells, tiles);
 }
 
-// ENDREGION: Map Code
+GridMap generateRandomMap(int rowCount, int colCount)
+{
+  Tile[] tiles = {
+    new Tile(TK_WALL, color(60)),
+    new Tile(TK_PATH, color(255, 10)),
+    new Tile(TK_BEGN, color(200, 10)),
+    new Tile(TK_GOAL, color(0, 128, 0, 10))
+  };
+  
+  int cells[][] = new int[rowCount][colCount];
 
+  for (int r = 0; r < rowCount; ++r)
+    for (int c = 0; c < colCount; ++c)
+      cells[r][c] = coin_flip() ? 1 : 0;
+
+  int startRow = 0;
+  int startCol = int(random(colCount));
+  int goalRow = rowCount - 1;
+  int goalCol = int(random(colCount));
+
+  cells[startRow][startCol] = 2;
+  cells[goalRow][goalCol] = 3;
+  
+  GridMap map = new GridMap(cells, tiles);
+  GridGraphBuilder builder = new GridGraphBuilder(map);
+  Graph<Cell> graph = builder.build();
+
+  Cell start = map.getCell(startRow, startCol);
+  Cell goal = map.getCell(goalRow, goalCol);
+
+  // Iterate until there's a path to the goal.
+  for (int iter = 0; iter < 1000 && !hasPath(graph, start, goal); ++iter)
+  {
+    updateDestinationInt(graph, goal);
+    Cell maxScore = getMaxScoreCell(graph);
+    Cell wall = findWallToSwap(map, maxScore, start);
+
+    wall.tile = map.tiles[TK_PATH];
+    graph = builder.build();
+  }
+
+  // Cull all unreachable nodes from the map.
+  updateDestinationInt(graph, goal);
+  for (Node<Cell> n : graph.getNodes())
+    if (n.item.score == UNREACHABLE)
+      n.item.tile = map.tiles[TK_WALL];
+
+  return map;
+}
+
+// ENDREGION: Map Code
 
 
 // ========================  
@@ -309,27 +361,84 @@ Graph<Cell> gGraph;
 int gCellHeight;
 int gCellWidth;
 
+// Returns true if the Cell is a wall.
+bool isWall(Cell c)
+{
+  return c != null && c.tile.isWall();
+}
+
+// Finds a suitable wall tile to swap for a path.
+Cell findWallToSwap(GridMap m, Cell c, Cell seek)
+{
+  while (!isWall(c))
+  {
+    Cell[] ns = m.getNeighbors(c);
+    Cell east = ns[NBR_E];
+    Cell west = ns[NBR_W];
+    Cell north = ns[NBR_N];
+    Cell south = ns[NBR_S];
+    
+    if (c.pos.col < seek.pos.col && east != null)
+      c = east;
+    else if (c.pos.col > seek.pos.col && west != null)
+      c = west;
+    else if (north != null)
+      c = north;
+    else if (south != null)
+      c = south;
+    else
+      throw new RuntimeException("Can't find wall.");
+  }
+
+  return c;
+}
+
+// Gets a reachable cell with the highest score.
+Cell getMaxScoreCell(Graph<Cell> g)
+{
+  Node<Cell> maxNode = null;
+
+  for (Node<Cell> n : g.getNodes())
+  {
+    if (n.item.score == UNREACHABLE)
+      continue;
+
+    if (maxNode == null || maxNode.item.score < n.item.score)
+      maxNode = n;
+  }
+
+  return maxNode != null ? maxNode.item : null;
+}
+
 // Sets the specified Cell as the goal and updates the
 // traversal scores on all Cells in the global GridMap.
 void updateDestination(Cell c)
 {
+  updateDestinationInt(gGraph, c);
+}
+
+void updateDestinationInt(Graph<Cell> g, Cell c)
+{
   ArrayList<Node<Cell>> unvisited =
-    new ArrayList<Node<Cell>>(gGraph.getNodes());
-  ArrayList<Node<Cell>> workList =
+    new ArrayList<Node<Cell>>(g.getNodes());
+  ArrayList<Node<Cell>> worklist =
     new ArrayList<Node<Cell>>();
-  
-  Node<Cell> dest = gGraph.getNode(c);
+ 
+  Node<Cell> dest = g.getNode(c);
+
+  for (Node<Cell> n : unvisited)
+    n.item.score = UNREACHABLE;
   
   if (dest == null)
     throw new RuntimeException("Cell is not part of the the traversal graph.");
   
   dest.item.score = 0;
-  workList.add(dest);
+  worklist.add(dest);
   
-  while (!workList.isEmpty())
+  while (!worklist.isEmpty())
   {
-    Node<Cell> n = workList.get(0);
-    workList.remove(0);
+    Node<Cell> n = worklist.get(0);
+    worklist.remove(0);
     unvisited.remove(n);
     
     for (Node<Cell> neighbor : n.neighbors)
@@ -337,10 +446,41 @@ void updateDestination(Cell c)
       if (unvisited.contains(neighbor))
       {
         neighbor.item.score = n.item.score + 1;
-        workList.add(neighbor);
+        worklist.add(neighbor);
       }
     }
   }
+}
+
+// Returns true if there's a path from cell a to b.
+bool hasPath(Graph<Cell> g, Cell a, Cell b)
+{
+  ArrayList<Node<Cell>> unvisited =
+    new ArrayList<Node<Cell>>(g.getNodes());
+  ArrayList<Node<Cell>> worklist =
+    new ArrayList<Node<Cell>>();
+
+  Node<Cell> strt = g.getNode(a);
+  Node<Cell> dest = g.getNode(b);
+  worklist.add(strt);
+ 
+  while (!worklist.isEmpty())
+  {
+    Node<Cell> n = worklist.get(0);
+    worklist.remove(0);
+    unvisited.remove(n);
+    
+    for (Node<Cell> neighbor : n.neighbors)
+    {
+      if (neighbor == dest)
+        return true;
+
+      if (unvisited.contains(neighbor))
+        worklist.add(neighbor);
+    }
+  }
+
+  return false;
 }
 
 // Gets the Cell containing the specified pixel.
@@ -355,8 +495,23 @@ PVector getCellCenter(Cell c)
                      c.pos.row * gCellHeight + gCellHeight / 2);
 }
 
-// ENDREGION: GridMap Helpers
+// Returns true if the transition between from-to is valid.
+bool valid_move(Cell from, Cell to)
+{
+  if (from == null || to == null)
+    return false;
 
+  if (from == to)
+    return true;
+
+  int delta_row = from.pos.row - to.pos.row;
+  int delta_col = from.pos.col - to.pos.col;
+
+  // Don't allow diagonal moves.
+  return delta_row == 0 || delta_col == 0;
+}
+
+// ENDREGION: GridMap Helpers
 
 
 //
@@ -427,8 +582,10 @@ float score(WormState s)
 
   if (c == null || c.tile.isWall())
     return MAX_SCORE;
+
+  float speed_bonus = (float)s.behaviors.length / (s.tot_bhv + 1);
   
-  return 10000 * c.score + dist2(goal, s.pos);
+  return 10000 * c.score + dist2(goal, s.pos) * speed_bonus;
 }
 
 // Equal probability event.
@@ -473,9 +630,8 @@ class Behavior
     count = _cnt;
   }
   
-  //float d_theta = random(-PI / 16, PI / 16);
-  float d_theta = get_quantized_theta(random(-PI, PI), random(2, 8));
-  int count = (int)(random(4, 128));
+  float d_theta = get_quantized_theta(random(-PI, PI), random(2, 32));
+  int count = (int)(random(16, 64));
 }
 
 // Copies behaviors from one list to another.
@@ -497,10 +653,11 @@ class WormState
 {
   PVector pos;
   PVector vel; // x = dir, y = speed
-  Behavior[] behaviors = new Behavior[13];
+  Behavior[] behaviors = new Behavior[256];
+  int fixed_bhv = 0;  // Fixed behaviors that are conserved.
+  int tot_bhv = 0;
   int idx_bhv = 0;
-  int cur_count = 0;  // number of steps in a bahavior direction.
-  int dir_mult = 1;   // direction multiplier
+  int cur_count = 0;  // Number of steps in a behavior direction.
   int steps = 0;
   boolean alive = true;
   float min_score = MAX_SCORE;
@@ -512,9 +669,10 @@ class WormState
     s.pos = new PVector(pos.x, pos.y);
     s.vel = new PVector(vel.x, vel.y);
     copyBehaviors(behaviors, s.behaviors);
+    s.fixed_bhv = fixed_bhv;
+    s.tot_bhv = tot_bhv;
     s.idx_bhv = idx_bhv;
     s.cur_count = cur_count;
-    s.dir_mult = dir_mult;
     s.steps = steps;
     s.alive = alive;
     s.min_score = min_score;
@@ -547,7 +705,14 @@ class Worm
     init.pos = new PVector(start.x, start.y);
     init.vel = new PVector(pick_one(parent_a.init.vel.x, parent_b.init.vel.x),
                            pick_one(parent_a.init.vel.y, parent_b.init.vel.y));
-    copyBehaviors(coin_flip() ? parent_a.init.behaviors : parent_b.init.behaviors, init.behaviors);
+    init.fixed_bhv = min(parent_a.init.fixed_bhv, parent_b.init.fixed_bhv);
+
+    // Randomly inherit behaviors from parents.
+    for (int i = 0; i < init.behaviors.length;++i)
+    {
+      Behavior to_copy = coin_flip() ? parent_a.init.behaviors[i] : parent_b.init.behaviors[i];
+      init.behaviors[i] = new Behavior(to_copy);
+    }
     
     mutate();    
     
@@ -558,17 +723,19 @@ class Worm
   // Mutates the movement properties of the worm.
   void mutate()
   {
-    init.vel.x *= (1 + random(-mutation_factor, mutation_factor));
+    // Mutate starting direction a tiny bit.
+    init.vel.x *= (1 + random(-mutation_factor, mutation_factor)) * 0.1;
+
+    // Mutate speed a little.
     init.vel.y *= (1 + random(-mutation_factor, mutation_factor));
     
-    for (int i = 0; i < init.behaviors.length; ++i)
+    // Mutate behavior genes, conserving early genes.
+    for (int i = init.fixed_bhv; i < init.behaviors.length; ++i)
     {
-      init.behaviors[i].d_theta *= (1 + random(-mutation_factor, mutation_factor));
-      init.behaviors[i].count *= (1 + random(-mutation_factor, mutation_factor));
-      
-      // Randomize the end behaviors a little more.
-      if (random(1) < (i / 100))
-        init.behaviors[i].d_theta = normalize_theta(init.behaviors[i].d_theta + random(-PI, PI));
+      double cos_ray = (random(1) < 0.1) ? 1 : random(100);
+
+      init.behaviors[i].d_theta *= (1 + random(-mutation_factor, mutation_factor) * cos_ray);
+      init.behaviors[i].count *= (1 + random(-mutation_factor, mutation_factor) * cos_ray);
     }
   }
   
@@ -579,20 +746,30 @@ class Worm
     if (!s.alive)
       return false;
 
+    Cell from_cell = getCellAtPoint(s.pos.x, s.pos.y);
     move();
     s.steps++;
+    Cell to_cell = getCellAtPoint(s.pos.x, s.pos.y);
+
+    if (!valid_move(from_cell, to_cell))
+    {
+      s.alive = false;
+      return false;
+    }
 
     float cur_score = score(s);
     if (cur_score < s.min_score)
       s.min_score = cur_score;
 
     s.alive = in_bounds(s.pos) && !in_wall(s.pos);
+
     if (at_goal(s.pos))
     {
       println("WIN");
-      noLoop();
+      winner = this;
+      s.alive = false;
     }
-      
+
     return s.alive;
   }
   
@@ -602,16 +779,14 @@ class Worm
     // TODO: actually move the correct distance
     s.pos.x += cos(s.vel.x) * s.vel.y;
     s.pos.y += sin(s.vel.x) * s.vel.y;
-    //s.vel.x = normalize_theta(s.vel.x + (s.dir_mult * s.behaviors[s.idx_bhv].d_theta));
-    s.vel.x = normalize_theta(s.vel.x + (s.dir_mult * PI / 360));
+    //s.vel.x = normalize_theta(s.vel.x);
     
     if (--s.cur_count < 0)
     {
+      s.tot_bhv++;
       s.idx_bhv = (s.idx_bhv + 1) % s.behaviors.length;
-      s.vel.x = s.behaviors[s.idx_bhv].d_theta * s.dir_mult;
-      
+      s.vel.x = s.behaviors[s.idx_bhv].d_theta;
       s.cur_count = s.behaviors[s.idx_bhv].count;
-      s.dir_mult *= -1;
     }
   }
   
@@ -620,6 +795,16 @@ class Worm
   {
     init.clone_into(s);
     s.draw_color = color(0, 255, 255);
+  }
+
+  // Conserve the genes for an iteration.
+  void fix_behavior()
+  {
+    if (s.tot_bhv > init.fixed_bhv)
+    {
+      init.fixed_bhv = s.tot_bhv;
+      print("Fixing to "); println(init.fixed_bhv);
+    }
   }
 }
 
@@ -631,6 +816,7 @@ float last_best = 0;
 int cur_iter = 0;
 int retry_limit = 10;
 int retry_count = 0;
+Worm winner = null;
 PVector center;
 PVector goal;
 
@@ -646,7 +832,8 @@ void prepare_map()
 {
   //gMap = getSimpleMap();
   //gMap = getObstacleMap();
-  gMap = getMazeMap();
+  //gMap = getMazeMap();
+  gMap = generateRandomMap(16, 16);
   GridGraphBuilder builder = new GridGraphBuilder(gMap);
   gGraph = builder.build();
   
@@ -669,6 +856,7 @@ void prepare_first_run()
   cur_iter = GEN_ITER;
   retry_count = 0;
   worms.clear();
+  winner = null;
 
   for (int i = 0; i < WORM_COUNT; ++i)
     worms.add(new Worm(center));
@@ -678,7 +866,7 @@ void prepare_incr_run()
 {
     cur_iter = GEN_ITER;
   
-  // find the two most successful
+  // Find the two most successful.
   Worm parent_a = (Worm)worms.get(0);
   Worm parent_b = (Worm)worms.get(1);
   
@@ -710,7 +898,11 @@ void prepare_incr_run()
   
   if (retry_count < retry_limit)
   {
-    // try again with the two best worms as seeds.
+    // Conserve early genes.
+    parent_a.fix_behavior();
+    parent_b.fix_behavior();
+
+    // Try again with the two best worms as seeds.
     worms.clear();
     for (int i = 0; i < WORM_COUNT - 2; ++i)
       worms.add(new Worm(center, parent_a, parent_b));
@@ -727,9 +919,19 @@ void prepare_incr_run()
   }
 }
 
+void clear_screen()
+{
+  stroke(200);
+  fill(200);
+  rect(0, 0, width, height);
+}
+
 void draw()
 {  
   boolean any_alive = false;
+
+  if (winner != null)
+    clear_screen();
   
   // Draw map.
   stroke(0);
@@ -754,6 +956,21 @@ void draw()
   stroke(0, 255, 0);
   fill(0, 200, 0);
   ellipse(goal.x, goal.y, GOAL_RADIUS, GOAL_RADIUS);
+
+  // If there's a winner, draw it's path and quit.
+  if (winner != null)
+  {
+    winner.reset();
+    stroke(0, 150, 0);
+    
+    while (winner.tick())
+    {
+      ellipse((int)winner.s.pos.x, (int)winner.s.pos.y, 1, 1);
+    }
+
+    noLoop();
+    return;
+  }
   
   // Draw and update worms.
   for (Worm w : worms)
@@ -775,11 +992,7 @@ void draw()
   // If all are dead or we stalled, start the next iteration.
   if (!any_alive || --cur_iter < 0)
   {
-    // Clear screen.
-    stroke(200);
-    fill(200);
-    rect(0, 0, width, height);
-
+    clear_screen();
     prepare_incr_run();
     
     // Draw stats.
