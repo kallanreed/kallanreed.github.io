@@ -3,17 +3,19 @@ let colWidth = 4;
 let rowHeight = 4;
 var cols = 0;
 var rows = 0;
-var blur = false;
+var fade = false;
 var board = [];
 var colorMap = [];
 
+function wrap(val, min, max) {
+  if (val >= min && val < max) { return val; }
+  
+  return val >= max ? val - max : val + max;
+}
 
 function cellAge(col, row) {
-  
-  if (col < 0 || col >= cols || row < 0 || row >= rows) {
-      return 0;
-   }
-  
+  col = wrap(col, 0, cols);
+  row = wrap(row, 0, rows);
   let index = row * cols + col;
   return board[index];
 }
@@ -28,8 +30,7 @@ function neighborCount(col, row) {
 
 function aliveNext(age, neighbors)
 {
-  return (neighbors >= 2 && neighbors <= 3 && age > 0) ||
-         (neighbors == 3 && age == 0);
+  return (neighbors == 2 && age > 0) || neighbors == 3;
 }
 
 function mouseIndex() {
@@ -82,11 +83,11 @@ function setup() {
   console.log("r: reset");
   console.log(">: faster");
   console.log("<: slower");
-  console.log("b: blur");
+  console.log("f: fade");
 }
 
 function draw() {
-  if (blur) {
+  if (fade) {
     fill(0, 25);
     rect(0, 0, width, height);
   } else {
@@ -137,7 +138,7 @@ function keyPressed() {
     frameRate(frameRate() + 1);
   } else if (key == '<') {
     frameRate(frameRate() - 1);
-  } else if (key == 'b') {
-    blur = !blur;
+  } else if (key == 'f') {
+    fade = !fade;
   }
 }
