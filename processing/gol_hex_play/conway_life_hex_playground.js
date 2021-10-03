@@ -10,8 +10,8 @@ let maxAge = 30;
 let cellRad = 5;
 let colWidth = 2 * cellRad * cos30;
 let rowHeight = cellRad + cellRad * sin30;
-var distNeighborFactor = 1.0;
-var lifeFunc = (a, n) => n == 4 || (n > 1 && n < 5 && a > 0);
+var distNeighborFactor = 1.85;
+var lifeFunc = (a, n) => n==3 || (n==2 && a>0) || (n>7 && a==0);
 var cols = 10;
 var rows = 10;
 var board = [];
@@ -57,11 +57,6 @@ function neighborCount(col, row) {
          floor(distantNeighborCount(col, row) / distNeighborFactor);
 }
 
-function aliveNext(age, neighbors)
-{
-  return lifeFunc(age, neighbors);
-}
-
 function scoreBoard() {
   
   var old = 0;
@@ -98,7 +93,7 @@ function runIterations(iterCount) {
         let age = cellAge(c, r);
         let nc = neighborCount(c, r);
         
-        temp.push(aliveNext(age, nc) ? min(age + 1, maxAge) : 0);
+        temp.push(lifeFunc(age, nc) ? min(age + 1, maxAge) : 0);
       }
     }
     
@@ -146,6 +141,7 @@ var dnfInput;
 var lifeFuncInput;
 var resetButton;
 var pauseButton;
+var stepButton;
 
 function dnfUpdate() {
   distNeighborFactor = float(this.value());
@@ -159,6 +155,7 @@ function lifeFuncUpdate() {
 
 function resetClicked() {
   initBoard();
+  redraw();
 }
 
 function pauseClicked() {
@@ -169,8 +166,14 @@ function pauseClicked() {
   }
 }
 
+function stepClicked() {
+  noLoop();
+  redraw();
+}
+
 function setup() {
-  createCanvas(windowWidth, windowHeight);
+  var c = createCanvas(windowWidth, windowHeight - 40);
+  c.position(0, 40);
   
   lifeFuncInput = createInput(str(lifeFunc));
   lifeFuncInput.position(0, 0);
@@ -183,12 +186,16 @@ function setup() {
   dnfInput.input(dnfUpdate);
   
   resetButton = createButton('Randomize');
-  resetButton.position(35, 22);
+  resetButton.position(35, 20);
   resetButton.mousePressed(resetClicked);
   
   pauseButton = createButton('Pause');
-  pauseButton.position(110, 22);
+  pauseButton.position(115, 20);
   pauseButton.mousePressed(pauseClicked);
+  
+  stepButton = createButton('Step');
+  stepButton.position(168, 20);
+  stepButton.mousePressed(stepClicked);
   
   initBoard();
   frameRate(12);
@@ -220,7 +227,7 @@ function draw() {
         hexa(c * colWidth + offset, r * rowHeight, cellRad);
       }
       
-      temp.push(aliveNext(age, nc) ? min(age + 1, maxAge) : 0);
+      temp.push(lifeFunc(age, nc) ? min(age + 1, maxAge) : 0);
     }
   }
   
