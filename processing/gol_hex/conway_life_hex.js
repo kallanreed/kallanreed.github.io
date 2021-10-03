@@ -7,9 +7,10 @@ function hexa(x, y, rad) {
 }
 
 let maxAge = 30;
-let cellRad = 6;
+let cellRad = 5;
 let colWidth = 2 * cellRad * cos30;
 let rowHeight = cellRad + cellRad * sin30;
+var distNeighborFactor = 1.85;
 var cols = 10;
 var rows = 10;
 var board = [];
@@ -36,8 +37,8 @@ function distantNeighborCount(col, row) {
   
   return fn(col - 2, row) + fn(col + 2, row) +  // Same row.
          fn(col, row - 2) + fn(col, row + 2) +  // Same col.
-         fn(col - 1, row - 2) + fn(col - 1, row - 2) +  // Finish top and bottom.
-         fn(col - 1, row + 2) + fn(col - 1, row + 2) +
+         fn(col - 1, row - 2) + fn(col + 1, row - 2) +  // Finish top and bottom.
+         fn(col - 1, row + 2) + fn(col + 1, row + 2) +
          fn(col - 2 + offset, row - 1) + fn(col + 1 + offset , row - 1) + // Diagonals (they have offsets).
          fn(col - 2 + offset , row + 1) + fn(col + 1 + offset , row + 1);
          
@@ -52,14 +53,81 @@ function neighborCount(col, row) {
   return fn(col - 1 + offset, row - 1) + fn(col + offset, row - 1) +
          fn(col - 1, row)              + fn(col + 1, row)          +
          fn(col - 1 + offset, row + 1) + fn(col + offset, row + 1) +
-         floor(distantNeighborCount(col, row) / 1.25);
+         floor(distantNeighborCount(col, row) / distNeighborFactor);
 }
 
 function aliveNext(age, neighbors)
 {
   //if (age >= maxAge) { return false; }
+  return neighbors == 3 || (neighbors == 2 && age > 0) || (neighbors > 7 && age == 0);
+}
+
+function scoreBoard() {
   
-  return (neighbors == 2 && age > 0) || neighbors == 3;
+  var old = 0;
+  var young = 0;
+  var dead = 0;
+  
+  for (var i = 0; i < board.length; i++) {
+    if (board[i] == 0) {
+      dead++;
+    } else if (board[i] > (maxAge * 0.25)) {
+      old++;
+    } else {
+      young++;
+    }
+  }
+  
+  // Want to maximize young cells up to some % of the board
+  // lower score the better
+  var target = board.length * 0.05;
+  var score = abs(target - young) - old * 0.2;
+  console.log("DNF: " + distNeighborFactor + " Dead: " + dead +
+    " Young: " + young + " Old: " + old + " Score: " + score);
+  return score;
+}
+
+function runIterations(iterCount) {
+  while (iterCount-- > 0) {
+    let temp = [];
+  
+    for (var r = 0; r < rows; r++) {
+      // Every other row needs to be shifted.
+      let offset = (r & 1) == 1 ? colWidth / 2 : 0;
+      for (var c = 0; c < cols; c++) {
+        let age = cellAge(c, r);
+        let nc = neighborCount(c, r);
+        
+        temp.push(aliveNext(age, nc) ? min(age + 1, maxAge) : 0);
+      }
+    }
+    
+    board = temp;
+  }
+}
+
+function findParameters() {
+  noLoop();
+  initBoard();
+  
+  let startingBoard = Array.from(board);
+  var bestValue = 0;
+  var bestScore = 99999;
+  
+  for (var i = 1.5; i < 2.5; i += 0.05) {
+    distNeighborFactor = i;
+    runIterations(100);
+    var score = scoreBoard();
+    
+    if (score < bestScore) {
+      bestScore = score;
+      bestValue = i;
+    }
+    
+    board = Array.from(startingBoard);
+  }
+  
+  console.log("Best: " + bestValue + " Score: " + bestScore);
 }
 
 function initBoard() {
@@ -77,12 +145,14 @@ function initBoard() {
 function setup() {
   createCanvas(windowWidth, windowHeight);
   initBoard();
-  frameRate(8);
+  frameRate(12);
   
   // 'map' is too slow to have in the tight loop so pre-compute this.
   for (var i = 0; i < maxAge; i++) {
     colorMap.push(floor(map(i, 0, maxAge, 255, 64)));
   }
+  
+  //findParameters();
 }
 
 function draw() {

@@ -30,7 +30,7 @@ function neighborCount(col, row) {
 
 function aliveNext(age, neighbors)
 {
-  return (neighbors == 2 && age > 0) || neighbors == 3;
+  return neighbors == 3 || (neighbors == 2 && age > 0);
 }
 
 function mouseIndex() {
