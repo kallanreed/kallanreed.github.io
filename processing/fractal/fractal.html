@@ -1,59 +1,90 @@
 <html>
-	<head>
-        <!-- Global site tag (gtag.js) - Google Analytics -->
-        <script async src="https://www.googletagmanager.com/gtag/js?id=UA-114278525-1"></script>
-        <script>
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
 
-            gtag('config', 'UA-114278525-1');
-        </script>
+<head>
+	<!-- Global site tag (gtag.js) - Google Analytics -->
+	<script async src="https://www.googletagmanager.com/gtag/js?id=UA-114278525-1"></script>
+	<script>
+		window.dataLayer = window.dataLayer || [];
+		function gtag() { dataLayer.push(arguments); }
+		gtag('js', new Date());
 
-		<title>Fractal Explorer</title>
-		<style type="text/css">
+		gtag('config', 'UA-114278525-1');
+	</script>
+
+	<title>Fractal Explorer</title>
+	<style type="text/css">
 		body {
 			margin: 0px;
 			background-color: #333;
 		}
+
 		.canvas-container {
 			width: 100%;
 			text-align: center;
 		}
+
 		.keys {
 			margin-top: 10px;
 			margin-left: auto;
 			margin-right: auto;
 			width: 300px;
 		}
+
 		.keys table {
 			width: 100%;
 			font-family: verdana;
 			font-size: small;
 			color: white;
 		}
-		.keys table td:nth-child(2)
-		{
+
+		.keys table td:nth-child(2) {
 			width: 50%;
 		}
-		</style>
-		<script src="../processing.min.js"></script>
-	</head>
-	<body>
-		<div class="canvas-container">	
-			<canvas data-processing-sources="fractal.pde"></canvas>
-		</div>
-		<div class="keys">
-			<table>
-				<tbody>
-					<tr><td>Up</td><td>w</td><td>Zoom In</td><td>e</td></tr>
-					<tr><td>Down</td><td>s</td><td>Zoom Out</td><td>q</td></tr>
-					<tr><td>Left</td><td>a</td><td>&uarr; Iter Count</td><td>+</td></tr>
-					<tr><td>Right</td><td>s</td><td>&darr; Iter Count</td><td>-</td></tr>
-					<tr><td></td><td></td><td>Reset</td><td>r</td></tr>
-					<tr></tr>
-				</tbody>
-			</table>
-		</div>
-	</body>
+	</style>
+	<script src="../processing.min.js"></script>
+</head>
+
+<body>
+	<div class="canvas-container">
+		<canvas data-processing-sources="fractal.pde"></canvas>
+	</div>
+	<div class="keys">
+		<table>
+			<tbody>
+				<tr>
+					<td>Up</td>
+					<td>w</td>
+					<td>Zoom In</td>
+					<td>e</td>
+				</tr>
+				<tr>
+					<td>Down</td>
+					<td>s</td>
+					<td>Zoom Out</td>
+					<td>q</td>
+				</tr>
+				<tr>
+					<td>Left</td>
+					<td>a</td>
+					<td>&uarr; Iter Count</td>
+					<td>+</td>
+				</tr>
+				<tr>
+					<td>Right</td>
+					<td>s</td>
+					<td>&darr; Iter Count</td>
+					<td>-</td>
+				</tr>
+				<tr>
+					<td></td>
+					<td></td>
+					<td>Reset</td>
+					<td>r</td>
+				</tr>
+				<tr></tr>
+			</tbody>
+		</table>
+	</div>
+</body>
+
 </html>
