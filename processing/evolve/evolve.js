@@ -152,9 +152,9 @@ class Genome {
   
   get color() {
     if (this.clr == undefined) {
-      const r = (this.identity) & 0xFF;
-      const g = (this.identity >> 8) & 0xFF;
-      const b = (this.identity >> 16) & 0xFF;
+      const r = (this.identity) & 0xff;
+      const g = (this.identity >> 8) & 0xff;
+      const b = (this.identity >> 16) & 0xff;
       this.clr = color(r, g, b);
     }
     
@@ -177,7 +177,6 @@ class Neuron {
   }
   
   addInput(n, w) {
-    // TODO: allow self-input?
     if (n == this) {
       console.log("SKIP SELF INPUT");
       return;
@@ -191,11 +190,7 @@ class Neuron {
     //console.log("Added connection: " + n.name + " -> " + this.name + " " + w);
   }
   
-  getLevel() {
-    // TODO: how to make sense of cycles? Use the prev
-    // value instead of the recursive call?
-    // Don't allow hidden cycles?
-    
+  getLevel() {    
     var total = 0;
     this.inputs.forEach(i => total += i.neuron.getLevel() * i.weight);
     return tanh(total);
@@ -209,8 +204,10 @@ class Neuron {
     }
     
     this.inputs.forEach(x => {
+      /*
+      // Recursive dump
       result += x.neuron.dump();
-      
+      */
       result += x.neuron.name + "=(" + x.weight + ")=>" + this.name + "\n";
     });
     
@@ -250,6 +247,8 @@ class Brain {
       new InputNeuron("NCT", () => norm(b.neighborCount, 0, 8)),
       new InputNeuron("PSX", () => b.posX),
       new InputNeuron("PSY", () => b.posY),
+      new InputNeuron("SZD", () => b.safeZoneDist),
+      new InputNeuron("DSZ", () => b.dirSafeZone),
     ];
 
     this.outputs = [
@@ -268,12 +267,15 @@ class Brain {
   }
   
   addGene(g) {
+    /*
+    // This method allows for cycles and graph evaluation
+    // needs to be updated to handle walking cycles.
     // 16 bits:
     // 15: input src
     // 12-14: input id
     // 11: output src
     // 8-10: output id
-    // 1-7: weight
+    // 0-7: weight
     // input
     const inHidden = false; //(g >> 15) != 0;
     const inSrc = inHidden ? this.hidden : this.inputs;
@@ -288,6 +290,23 @@ class Brain {
     // weight
     const weight = (norm((g & 0xff), 0, 0xff) - 0.5) * 3;
     outDest[outId].addInput(inSrc[inId], weight);
+    */
+    
+    // 16 bits:
+    // 15: layer (in->hidden, hidden->out)
+    // 11-14: input id
+    // 7-10: output id
+    // 0-6: weight
+    const layer0 = (g >> 15) == 0;
+    const inSrc = layer0 ? this.inputs : this.hidden;
+    const outDest = layer0 ? this.hidden : this.outputs;
+    
+    const inId = ((g >> 11) & 0xf) % inSrc.length;
+    const outId = ((g >> 7) & 0xf) % outDest.length;
+    
+    // weight
+    const weight = (norm((g & 0x7f), 0, 0x7f) - 0.5) * 3;
+    outDest[outId].addInput(inSrc[inId], weight);
   }
   
   activate() {
@@ -300,6 +319,7 @@ class Brain {
   
   dump() {
     var result = "";
+    this.hidden.forEach(x => result += x.dump());
     this.outputs.forEach(x => result += x.dump());
     return result;
   }
@@ -327,8 +347,14 @@ class Bug {
     return board.neighborCount(this.pos.x, this.pos.y);
   }
   
-  get closestWall() {
-    
+  get safeZoneDist() {
+    var d = dist(this.pos.x, this.pos.y, safeZone.cx, safeZone.cy);
+    return mid(-1, norm(d, -15, 15), 1);
+  }
+  
+  get dirSafeZone() {
+    var d = atan2(this.pos.y - safeZone.cy, this.pos.x - safeZone.cx) + PI;
+    return norm(d, -PI, PI);
   }
   
   get posX() {
@@ -401,30 +427,45 @@ class Stats {
 }
 
 
-const cellW = 10;
-const cellH = 10;
+const cellW = 7;
+const cellH = 7;
 const board = new Board(80, 80);
 const maxBoardIndex = board.width * board.height;
 const stats = new Stats();
 
-const bugCount = 400;
-const geneCount = 4;
-const hiddenCount = 2;
-const mutationRate = 0.001;
-const genIterations = 90;
+const bugCount = 500;
+var geneCount = 4;
+var hiddenCount = 2;
+var mutationRate = 0.001;
+const genIterations = 120;
 var iteration = 0;
 
 var debugDiv;
+var sldX1;
+var sldX2;
+var sldY1;
+var sldY2;
+
 const safeZone = {
-  x1: 0, y1: 20,
-  x2: 50, y2: 60
+  x1: 0, y1: 0,
+  x2: board.width / 3, y2: board.width,
+  cx: 0, cy: 0
 };
+
+
+function toggleLoop() {
+  if (isLooping()) {
+    noLoop();
+  } else {
+    loop();
+  }
+}
+
 
 function drawBug(b) {
   fill(b.genome.color);
-  stroke(128);
   circle(b.pos.x * cellW + cellW / 2,
-         b.pos.y * cellH + cellH / 2, 7);
+         b.pos.y * cellH + cellH / 2, cellW * 0.7);
 }
 
 
@@ -477,6 +518,17 @@ function isSafe(x, y) {
 }
 
 
+function updateSafeZone() {
+  safeZone.x1 = sldX1.value();
+  safeZone.x2 = sldX2.value();
+  safeZone.y1 = sldY1.value();
+  safeZone.y2 = sldY2.value();
+  
+  safeZone.cx = round(safeZone.x1 + ((safeZone.x2 - safeZone.x1) / 2));
+  safeZone.cy = round(safeZone.y1 + ((safeZone.y2 - safeZone.y1) / 2));
+}
+
+
 function nextGeneration()
 {
   iteration = 0;
@@ -508,13 +560,83 @@ function nextGeneration()
 
 
 function setup() {
-  createCanvas(board.width * cellW, board.height * cellH);
+  var canvas = createCanvas(board.width * cellW, board.height * cellH);
+  
+  var ctrlDiv = createDiv();
+  ctrlDiv.class("controls");
+  ctrlDiv.style("width:" + board.width * cellW);
+  
+  var resetBtn = createButton("Restart");
+  resetBtn.mousePressed(init);
+  resetBtn.parent(ctrlDiv);
+  
+  var pauseBtn = createButton("Pause");
+  pauseBtn.mousePressed(toggleLoop);
+  pauseBtn.parent(ctrlDiv);
+  
+  var safeZoneDiv = createDiv("Safe Zone");
+  safeZoneDiv.parent(ctrlDiv);
+  var safeRanges = createDiv();
+  safeRanges.parent(safeZoneDiv);
+  sldX1 = createSlider(0, board.width, safeZone.x1);
+  sldX1.parent(safeRanges);
+  sldX2 = createSlider(0, board.width, safeZone.x2);
+  sldX2.parent(safeRanges);
+  sldY1 = createSlider(0, board.height, safeZone.y1);
+  sldY1.parent(safeRanges);
+  sldY2 = createSlider(0, board.height, safeZone.y2);
+  sldY2.parent(safeRanges);
+  
+  var paramsDiv = createDiv("Parameters");
+  paramsDiv.parent(ctrlDiv);
+  var inputsDiv = createDiv();
+  inputsDiv.parent(ctrlDiv);
+  
+  var spanGenes = createSpan("Gene Count: ");
+  spanGenes.class("sliderGroup");
+  spanGenes.parent(inputsDiv);
+  var spanGenesVal = createSpan(geneCount);
+  spanGenesVal.parent(spanGenes);
+  var sldGenes = createSlider(2, 16, geneCount);
+  sldGenes.parent(spanGenes);
+  sldGenes.input(() => {
+    geneCount = round(sldGenes.value());
+    spanGenesVal.html(geneCount);
+  });
+  
+  var spanHidden = createSpan("Hidden Neurons: ");
+  spanHidden.class("sliderGroup");
+  spanHidden.parent(inputsDiv);
+  var spanHiddenVal = createSpan(hiddenCount);
+  spanHiddenVal.parent(spanHidden);
+  var sldHidden = createSlider(1, 8, hiddenCount);
+  sldHidden.parent(spanHidden);
+  sldHidden.input(() => {
+    hiddenCount = round(sldHidden.value());
+    spanHiddenVal.html(hiddenCount);
+  });
+  
+  var spanMutate = createSpan("Mutate Rate: ");
+  spanMutate.class("sliderGroup");
+  spanMutate.parent(inputsDiv);
+  var spanMutateVal = createSpan(mutationRate);
+  spanMutateVal.parent(spanMutate);
+  var sldMutate = createSlider(0, 5, 3);
+  sldMutate.parent(spanMutate);
+  sldMutate.style("width: 45%;");
+  sldMutate.input(() => {
+    mutationRate = 1/pow(10, round(sldMutate.value()));
+    spanMutateVal.html(mutationRate);
+  });
+  
   debugDiv = createDiv();
   debugDiv.class("debug");
+  debugDiv.style("width:" + board.width * cellW);
   
   frameRate(30);
   init();
 }
+
 
 function update() {
   board.bugs.forEach(b => b.update());
@@ -522,12 +644,15 @@ function update() {
 
 
 function draw() {
+  updateSafeZone();
   update();
   iteration++;
   
   background(32);
-  noFill();
   
+  // Draw grid.
+  /*
+  noFill();
   for (var r = 0; r < board.height; r++) {
     for (var c = 0; c < board.width; c++) {
       const safe = isSafe(c, r);
@@ -535,8 +660,16 @@ function draw() {
       rect(c * cellW, r * cellH, cellW, cellH);
     }
   }
+  */
   
+  stroke(0x7f, 0x60);
   board.bugs.forEach(drawBug);
+  
+  fill(0, 0x70, 0, 0x20);
+  noStroke();
+  rect(safeZone.x1 * cellW, safeZone.y1 * cellH,
+    (safeZone.x2 - safeZone.x1) * cellW,
+    (safeZone.y2 - safeZone.y1) * cellH);
   
   fill(200);
   text(iteration, 2, height - 5);
@@ -544,15 +677,4 @@ function draw() {
   if (iteration > genIterations) {
     nextGeneration();
   }
-}
-
-function mousePressed() {
-  [safeZone.x1, safeZone.y1] = [floor(mouseX / cellW), floor(mouseY / cellH)];
-  noLoop();
-}
-
-function mouseReleased() {
-  [safeZone.x2, safeZone.y2] = [floor(mouseX / cellW), floor(mouseY / cellH)];
-  loop();
-  init();
 }
