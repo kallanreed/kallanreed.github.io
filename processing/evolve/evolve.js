@@ -109,8 +109,8 @@ class Board {
         console.log("Bad Direction", dir);
     }
     
-    nx = mid(0, nx, board.width);
-    ny = mid(0, ny, board.height);
+    nx = mid(0, nx, board.width - 1);
+    ny = mid(0, ny, board.height - 1);
     
     const src = this.getCell(x, y);
     const dest = this.getCell(nx, ny);
@@ -152,9 +152,9 @@ class Genome {
   
   get color() {
     if (this.clr == undefined) {
+      const g = (this.identity >> 16) & 0xff;
+      const b = (this.identity >> 8) & 0xff;
       const r = (this.identity) & 0xff;
-      const g = (this.identity >> 8) & 0xff;
-      const b = (this.identity >> 16) & 0xff;
       this.clr = color(r, g, b);
     }
     
@@ -427,8 +427,8 @@ class Stats {
 }
 
 
-const cellW = 7;
-const cellH = 7;
+const cellW = 6;
+const cellH = 6;
 const board = new Board(80, 80);
 const maxBoardIndex = board.width * board.height;
 const stats = new Stats();
@@ -459,13 +459,6 @@ function toggleLoop() {
   } else {
     loop();
   }
-}
-
-
-function drawBug(b) {
-  fill(b.genome.color);
-  circle(b.pos.x * cellW + cellW / 2,
-         b.pos.y * cellH + cellH / 2, cellW * 0.7);
 }
 
 
@@ -577,6 +570,7 @@ function setup() {
   var safeZoneDiv = createDiv("Safe Zone");
   safeZoneDiv.parent(ctrlDiv);
   var safeRanges = createDiv();
+  safeRanges.class("safeRanges");
   safeRanges.parent(safeZoneDiv);
   sldX1 = createSlider(0, board.width, safeZone.x1);
   sldX1.parent(safeRanges);
@@ -597,7 +591,7 @@ function setup() {
   spanGenes.parent(inputsDiv);
   var spanGenesVal = createSpan(geneCount);
   spanGenesVal.parent(spanGenes);
-  var sldGenes = createSlider(2, 16, geneCount);
+  var sldGenes = createSlider(2, 32, geneCount);
   sldGenes.parent(spanGenes);
   sldGenes.input(() => {
     geneCount = round(sldGenes.value());
@@ -623,7 +617,6 @@ function setup() {
   spanMutateVal.parent(spanMutate);
   var sldMutate = createSlider(0, 5, 3);
   sldMutate.parent(spanMutate);
-  sldMutate.style("width: 45%;");
   sldMutate.input(() => {
     mutationRate = 1/pow(10, round(sldMutate.value()));
     spanMutateVal.html(mutationRate);
@@ -643,12 +636,21 @@ function update() {
 }
 
 
+function drawBug(b) {
+  fill(b.genome.color);
+  circle(b.pos.x * cellW + cellW / 2,
+         b.pos.y * cellH + cellH / 2, cellW * 0.7);
+}
+
+
 function draw() {
   updateSafeZone();
   update();
   iteration++;
   
-  background(32);
+  //background(32);
+  fill(0x1f, 0x50);
+  rect(0, 0, width, height);
   
   // Draw grid.
   /*
@@ -665,7 +667,7 @@ function draw() {
   stroke(0x7f, 0x60);
   board.bugs.forEach(drawBug);
   
-  fill(0, 0x70, 0, 0x20);
+  fill(0, 0x70, 0, 0x08);
   noStroke();
   rect(safeZone.x1 * cellW, safeZone.y1 * cellH,
     (safeZone.x2 - safeZone.x1) * cellW,
