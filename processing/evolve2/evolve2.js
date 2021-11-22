@@ -15,6 +15,14 @@ function mid(a, b, c) {
   return min(max(a, b), c);
 }
 
+function sin1(a) {
+  return -sin(a * 2 * PI);
+}
+
+function cos1(a) {
+  return cos(a * 2 * PI);
+}
+
 function mutationMask(maxMask, rate) {
   var mutate = () => random() < rate;
   var result = 0;
@@ -71,12 +79,14 @@ class Board {
            n(x - 1, y)     +               n(x + 1, y)     +
            n(x - 1, y + 1) + n(x, y + 1) + n(x + 1, y + 1);
   }
-  
+
+  // Gets the coord of a move in dir (0..1)
   // 0=E, 1=NE, 2=N, 3=NW, 4=W, 5=SW, 6=S, 7=SE
-  move(x, y, dir) {
+  getNextCoord(x, y, dir) {
     var [nx, ny] = [x, y];
-    
-    switch (dir) {
+    var d = round(8 * dir) % 8;
+
+    switch (d) {
       case 0:
         nx += 1;
         break;
@@ -111,6 +121,16 @@ class Board {
     
     nx = mid(0, nx, board.width - 1);
     ny = mid(0, ny, board.height - 1);
+    return [nx, ny];
+  }
+
+  isBlocked(x, y, dir) {
+    var [nx, ny] = this.getNextCoord(x, y, dir);
+    return this.getCell(nx, ny) != undefined;
+  }
+
+  move(x, y, dir) {
+    var [nx, ny] = this.getNextCoord(x, y, dir);
     
     const src = this.getCell(x, y);
     const dest = this.getCell(nx, ny);
@@ -242,20 +262,26 @@ class OutputNeuron extends Neuron {
 class Brain {
   constructor(b) {
     this.inputs = [
-      new InputNeuron("RND", () => random(-1, 1)),
-      new InputNeuron("OSC", () => norm(iteration % 30, 0, 30)),
-      new InputNeuron("NCT", () => norm(b.neighborCount, 0, 8)),
-      new InputNeuron("PSX", () => b.posX),
-      new InputNeuron("PSY", () => b.posY),
-      new InputNeuron("SZD", () => b.safeZoneDist),
-      new InputNeuron("DSZ", () => b.dirSafeZone),
+      new InputNeuron("FWDIR", () => b.dir),
+      new InputNeuron("BLCKD", () => b.isBlocked),
+      new InputNeuron("NBCNT", () => norm(b.neighborCount, 0, 8)),
+      new InputNeuron("SAFTY", () => b.safety),
+      new InputNeuron("RANDM", () => random(-1, 1)),
+      new InputNeuron("OSCLR", () => norm(iteration % 30, 0, 30)),
+
+      // new InputNeuron("PSX", () => b.posX),
+      // new InputNeuron("PSY", () => b.posY),
+      // new InputNeuron("SZD", () => b.safeZoneDist),
+      // new InputNeuron("DSZ", () => b.dirSafeZone),
     ];
 
     this.outputs = [
-      new OutputNeuron("MNS", x => b.moveY(x)),
-      new OutputNeuron("MEW", x => b.moveX(x)),
-      new OutputNeuron("MRN", x => b.moveRnd(x)),
-      new OutputNeuron("MDR", x => b.moveDir(x)),
+      new OutputNeuron("MVFWD", x => b.moveForward(x)),
+      new OutputNeuron("MVBWD", x => b.moveBackward(x)),
+      new OutputNeuron("TURND", x => b.turn(x)),
+      //new OutputNeuron("MEW", x => b.moveX(x)),
+      //new OutputNeuron("MRN", x => b.moveRnd(x)),
+      //new OutputNeuron("MDR", x => b.moveDir(x)),
     ];
     
     this.hidden = [];
@@ -328,6 +354,7 @@ class Brain {
 class Bug {
   constructor(pos, genome) {
     this.pos = pos;
+    this.dir = random();  // angle 0-1 like PICO-8
     this.genome = new Genome();
     
     if (genome == undefined) {
@@ -347,6 +374,19 @@ class Bug {
     return board.neighborCount(this.pos.x, this.pos.y);
   }
   
+  get safety() {
+    if (!isSafe(this.pos.x, this.pos.y)) {
+      return 0;
+    }
+
+    var d = abs(dist(this.pos.x, this.pos.y, safeZone.cx, safeZone.cy));
+    return max(norm(d, safeZone.rad, 0), 0);
+  }
+
+  get isBlocked() {
+    return board.isBlocked(this.pos.x, this.pos.y, this.dir) ? 1 : 0;
+  }
+
   get safeZoneDist() {
     var d = dist(this.pos.x, this.pos.y, safeZone.cx, safeZone.cy);
     return mid(-1, norm(d, -15, 15), 1);
@@ -365,36 +405,25 @@ class Bug {
     return norm(this.pos.y, 0, board.height);
   }
   
+
   update() {
     this.brain.activate();
   }
-  
-  moveX(level) {
-    var norm = round(level);
-    if (norm == 0) { return; }
-    
-    const d = norm > 0 ? 0 : 4;
-    this.pos = board.move(this.pos.x, this.pos.y, d);
+
+  turn(level) {
+    this.dir = fract(abs(this.dir + level));
   }
-  
-  moveY(level) {
-    var norm = round(level);
-    if (norm == 0) { return; }
-    
-    const d = norm > 0 ? 2 : 6;
-    this.pos = board.move(this.pos.x, this.pos.y, d);
-  }
-  
-  moveRnd(level) {
-    if (level > 0.5) {
-      const d = floor(random(8));
-      this.pos = board.move(this.pos.x, this.pos.y, d);
+
+  moveForward(level) {
+    if (round(level) > 0) {
+      this.pos = board.move(this.pos.x, this.pos.y, this.dir);
     }
   }
-  
-  moveDir(level) {
-    var d = abs(floor(level * 8) % 8);
-    this.pos = board.move(this.pos.x, this.pos.y, d);
+
+  moveBackward(level) {
+    if (round(level) > 0) {
+      this.pos = board.move(this.pos.x, this.pos.y, this.dir);
+    }
   }
 }
 
@@ -427,15 +456,15 @@ class Stats {
 }
 
 
-const cellW = 6;
-const cellH = 6;
+const cellW = 7;
+const cellH = 7;
 const board = new Board(80, 80);
 const maxBoardIndex = board.width * board.height;
 const stats = new Stats();
 
 const bugCount = 500;
-var geneCount = 4;
-var hiddenCount = 2;
+var geneCount = 12;
+var hiddenCount = 3;
 var mutationRate = 0.001;
 const genIterations = 120;
 var iteration = 0;
@@ -447,9 +476,10 @@ var sldY1;
 var sldY2;
 
 const safeZone = {
-  x1: 0, y1: 0,
-  x2: board.width / 3, y2: board.width,
-  cx: 0, cy: 0
+  x1: 10, y1: 10,
+  x2: board.width / 2, y2: board.height - 10,
+  cx: 0, cy: 0,
+  rad: 0
 };
 
 
@@ -519,6 +549,8 @@ function updateSafeZone() {
   
   safeZone.cx = round(safeZone.x1 + ((safeZone.x2 - safeZone.x1) / 2));
   safeZone.cy = round(safeZone.y1 + ((safeZone.y2 - safeZone.y1) / 2));
+
+  safeZone.rad = dist(safeZone.x1, safeZone.y1, safeZone.cx, safeZone.cy);
 }
 
 
@@ -637,9 +669,17 @@ function update() {
 
 
 function drawBug(b) {
+
+  var cx = b.pos.x * cellW + cellW / 2;
+  var cy = b.pos.y * cellH + cellH / 2;
+  var r = cellW * 0.8 / 2
+
+  stroke(0x7f, 0x60);
   fill(b.genome.color);
-  circle(b.pos.x * cellW + cellW / 2,
-         b.pos.y * cellH + cellH / 2, cellW * 0.7);
+  circle(cx, cy, 2 * r);
+
+  stroke(255)
+  line(cx, cy, cx + r * cos1(b.dir), cy + r * sin1(b.dir));
 }
 
 
@@ -649,7 +689,7 @@ function draw() {
   iteration++;
   
   //background(32);
-  fill(0x1f, 0x50);
+  fill(0x1f, 0x60);
   rect(0, 0, width, height);
   
   // Draw grid.
@@ -663,8 +703,7 @@ function draw() {
     }
   }
   */
-  
-  stroke(0x7f, 0x60);
+
   board.bugs.forEach(drawBug);
   
   fill(0, 0x70, 0, 0x08);
@@ -675,6 +714,17 @@ function draw() {
   
   fill(200);
   text(iteration, 2, height - 5);
+
+  /*
+  // Normalized directions
+  // Make Y negative so up is negative, add PI to fix dumb atan range.
+  var dir = atan2(-((height/2)-mouseY),(width/2)-mouseX) + PI;
+  var d1 = dir / (2 * PI);
+  var d2 = round(d1 * 8) % 8;
+  text(dir, 0, 10);
+  text(d1, 0, 20);
+  text(d2, 0, 30);
+  */
   
   if (iteration > genIterations) {
     nextGeneration();
