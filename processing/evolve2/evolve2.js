@@ -15,12 +15,19 @@ function mid(a, b, c) {
   return min(max(a, b), c);
 }
 
-function sin1(a) {
+// Angle functions remapped from 0 to 1, counter clockwise starting from East.
+function sin_1(a) {
   return -sin(a * 2 * PI);
 }
 
-function cos1(a) {
+function cos_1(a) {
   return cos(a * 2 * PI);
+}
+
+function atan2_1(dx, dy) {
+  // Normalize direction.
+  // Make Y negative so up is negative, add PI to fix dumb atan range.
+  return (atan2(-dy, dx) + PI) / (2 * PI);
 }
 
 function mutationMask(maxMask, rate) {
@@ -49,11 +56,60 @@ class Board {
   reset() {
     this.board = [];
     this.bugs = [];
+    this.pheromones = [];
+    this.phmIndex = [];
   }
   
   addBug(b) {
     this.bugs.push(b);
     this.setCell(b.pos.x, b.pos.y, b);
+  }
+
+  addPheromone(p) {
+    var ix = this.getIndex(p.pos.x, p.pos.y);
+    if (this.phmIndex[ix] == undefined) {
+      this.pheromones.push(p);
+      this.phmIndex[ix] = p;
+    }
+  }
+
+  fadePheromones() {
+    for (var i = this.pheromones.length - 1; i >= 0; i--) {
+      var p = this.pheromones[i];
+      if (!p.fade()) {
+        this.phmIndex[this.getIndex(p.pos.x, p.pos.y)] = undefined;
+        this.pheromones.splice(i, 1);
+      }
+    }
+  }
+
+  getPheromoneCenter(x, y, r) {
+    var sx = 0;
+    var sy = 0;
+    var cnt = 0;
+
+    var min_x = max(x - r, 0);
+    var max_x = min(x + r, this.width - 1);
+    var min_y = max(y - r, 0);
+    var max_y = min(y + r, this.height - 1);
+
+    for (var _y = min_y; _y <= max_y; _y++) {
+      for (var _x = min_x; _x <= max_x; _x++) {
+         var p = this.phmIndex[this.getIndex(_x, _y)];
+         
+         if (p != undefined) {
+           sx += p.pos.x * p.level;
+           sy += p.pos.y * p.level;
+           cnt += p.level;
+         }
+      }
+    }
+
+    if (cnt > 0) {
+      return {x: round(sx / cnt), y: round(sy / cnt)};
+    }
+
+    return undefined;
   }
   
   getCell(x, y) {
@@ -79,6 +135,36 @@ class Board {
            n(x - 1, y)     +               n(x + 1, y)     +
            n(x - 1, y + 1) + n(x, y + 1) + n(x + 1, y + 1);
   }
+
+  getNeighborCenter(x, y, r) {
+    var sx = 0;
+    var sy = 0;
+    var cnt = 0;
+
+    var min_x = max(x - r, 0);
+    var max_x = min(x + r, this.width - 1);
+    var min_y = max(y - r, 0);
+    var max_y = min(y + r, this.height - 1);
+
+    for (var _y = min_y; _y <= max_y; _y++) {
+      for (var _x = min_x; _x <= max_x; _x++) {
+         var p = this.board[this.getIndex(_x, _y)];
+         
+         if (p != undefined) {
+           sx += p.pos.x;
+           sy += p.pos.y;
+           cnt++;
+         }
+      }
+    }
+
+    if (cnt > 0) {
+      return {x: round(sx / cnt), y: round(sy / cnt)};
+    }
+
+    return undefined;
+  }
+
 
   // Gets the coord of a move in dir (0..1)
   // 0=E, 1=NE, 2=N, 3=NW, 4=W, 5=SW, 6=S, 7=SE
@@ -261,27 +347,26 @@ class OutputNeuron extends Neuron {
 // TOOD: lots of expensive closures.
 class Brain {
   constructor(b) {
+    var oscOffset = floor(random(30));
     this.inputs = [
       new InputNeuron("FWDIR", () => b.dir),
       new InputNeuron("BLCKD", () => b.isBlocked),
       new InputNeuron("NBCNT", () => norm(b.neighborCount, 0, 8)),
       new InputNeuron("SAFTY", () => b.safety),
-      new InputNeuron("RANDM", () => random(-1, 1)),
-      new InputNeuron("OSCLR", () => norm(iteration % 30, 0, 30)),
-
-      // new InputNeuron("PSX", () => b.posX),
-      // new InputNeuron("PSY", () => b.posY),
-      // new InputNeuron("SZD", () => b.safeZoneDist),
-      // new InputNeuron("DSZ", () => b.dirSafeZone),
+      new InputNeuron("FWSAF", () => b.isSafeAhead),
+      new InputNeuron("NBDIR", () => b.neighborDir),
+      new InputNeuron("RANDM", () => random()),
+      new InputNeuron("OSCLR", () => norm((iteration + oscOffset) % 30, 0, 30)),
+      new InputNeuron("PHDIR", () => b.pheromoneDir),
+      new InputNeuron("_AGE_", () => b.age),
     ];
 
     this.outputs = [
       new OutputNeuron("MVFWD", x => b.moveForward(x)),
       new OutputNeuron("MVBWD", x => b.moveBackward(x)),
+      //new OutputNeuron("MVRND", x => b.moveRandom(x)),
       new OutputNeuron("TURND", x => b.turn(x)),
-      //new OutputNeuron("MEW", x => b.moveX(x)),
-      //new OutputNeuron("MRN", x => b.moveRnd(x)),
-      //new OutputNeuron("MDR", x => b.moveDir(x)),
+      new OutputNeuron("APHRM", x => b.dropPheromone(x)),
     ];
     
     this.hidden = [];
@@ -351,6 +436,29 @@ class Brain {
   }
 }
 
+
+class Pheromone {
+  constructor(pos) {
+    this.pos = { x: pos.x, y: pos.y };
+    this.level = 1;
+  }
+
+  fade() {
+    this.level -= 0.05;
+    return this.level > 0;
+  }
+
+  // Centered and scaled coordinates.
+  get cx() {
+    return (this.pos.x * cellW) + (cellW / 2);
+  }
+
+  get cy() {
+    return (this.pos.y * cellH) + (cellH / 2);
+  }
+}
+
+
 class Bug {
   constructor(pos, genome) {
     this.pos = pos;
@@ -364,14 +472,79 @@ class Bug {
     }
     
     this.brain = new Brain(this);
+    this.clearCache();
   }
-  
+
+  clearCache() {
+    this.pheromoneDirVal = undefined;
+    this.neighborDirVal = undefined;
+  }
+
   get identity() {
     return this.genome.identity;
+  }
+
+  // Centered and scaled coordinates.
+  get cx() {
+    return (this.pos.x * cellW) + (cellW / 2);
+  }
+
+  get cy() {
+    return (this.pos.y * cellH) + (cellH / 2);
   }
   
   get neighborCount() {
     return board.neighborCount(this.pos.x, this.pos.y);
+  }
+
+  get pheromoneDir() {
+    if (this.pheromoneDirVal == undefined) {
+      const rad = 7;
+      let phmCenter = board.getPheromoneCenter(this.pos.x, this.pos.y, rad);
+
+      if (phmCenter == undefined ||
+        (this.pos.x == phmCenter.x && this.pos.y == phmCenter.y)) {
+        return -1;
+      }
+
+      this.pheromoneDirVal = atan2_1(this.pos.x - phmCenter.x, this.pos.y - phmCenter.y);
+
+      //stroke(255);
+      //noFill();
+      //circle(this.cx, this.cy, rad * 2 * cellW);
+      //line(this.cx, this.cy, this.cx + (cos_1( this.pheromoneDirVal) * 30), this.cy + (sin_1( this.pheromoneDirVal) * 30));
+      stroke(0, 0x80, 0xff, 0x90);
+      line(this.cx, this.cy, phmCenter.x * cellW, phmCenter.y * cellH);
+    }
+    
+    return this.pheromoneDirVal;
+  }
+
+  get neighborDir() {
+    if (this.neighborDirVal == undefined) {
+      const rad = 7;
+      let nCenter = board.getNeighborCenter(this.pos.x, this.pos.y, rad);
+
+      if (nCenter == undefined ||
+        (this.pos.x == nCenter.x && this.pos.y == nCenter.y)) {
+        return -1;
+      }
+
+      this.neighborDirVal = atan2_1(this.pos.x - nCenter.x, this.pos.y - nCenter.y);
+
+      //stroke(255);
+      //noFill();
+      //circle(this.cx, this.cy, rad * 2 * cellW);
+      //line(this.cx, this.cy, this.cx + (cos_1(this.neighborDirVal) * 30), this.cy + (sin_1(this.neighborDirVal) * 30));
+      stroke(0x80, 0x80);
+      line(this.cx, this.cy, nCenter.x * cellW, nCenter.y * cellH);
+    }
+
+    return this.neighborDirVal;
+  }
+
+  get age() {
+    return iteration / genIterations;
   }
   
   get safety() {
@@ -387,24 +560,21 @@ class Bug {
     return board.isBlocked(this.pos.x, this.pos.y, this.dir) ? 1 : 0;
   }
 
-  get safeZoneDist() {
-    var d = dist(this.pos.x, this.pos.y, safeZone.cx, safeZone.cy);
-    return mid(-1, norm(d, -15, 15), 1);
+  get isSafeAhead() {
+    var [nx, ny] = [this.pos.x, this.pos.y];
+    var units = 1;
+
+    // Look forward for safety.
+    while (units <= 10) {
+      [nx, ny] = board.getNextCoord(nx, ny, this.dir);
+      if (isSafe(nx, ny)) {
+        return 1 / units;
+      }
+      units++;
+    }
+
+    return 0;
   }
-  
-  get dirSafeZone() {
-    var d = atan2(this.pos.y - safeZone.cy, this.pos.x - safeZone.cx) + PI;
-    return norm(d, -PI, PI);
-  }
-  
-  get posX() {
-    return norm(this.pos.x, 0, board.width);
-  }
-  
-  get posY() {
-    return norm(this.pos.y, 0, board.height);
-  }
-  
 
   update() {
     this.brain.activate();
@@ -424,6 +594,19 @@ class Bug {
     if (round(level) > 0) {
       this.pos = board.move(this.pos.x, this.pos.y, this.dir);
     }
+  }
+
+  moveRandom(level) {
+    if (round(level) > 0) {
+      this.pos = board.move(this.pos.x, this.pos.y, random());
+    }
+  }
+
+  dropPheromone(level) {
+    if (round(level) > 0) {
+      board.addPheromone(new Pheromone(this.pos));
+    }
+
   }
 }
 
@@ -456,8 +639,8 @@ class Stats {
 }
 
 
-const cellW = 7;
-const cellH = 7;
+const cellW = 6;
+const cellH = 6;
 const board = new Board(80, 80);
 const maxBoardIndex = board.width * board.height;
 const stats = new Stats();
@@ -598,6 +781,10 @@ function setup() {
   var pauseBtn = createButton("Pause");
   pauseBtn.mousePressed(toggleLoop);
   pauseBtn.parent(ctrlDiv);
+
+  var pauseBtn = createButton("Skip 10");
+  pauseBtn.mousePressed(() => fastForward(10));
+  pauseBtn.parent(ctrlDiv);
   
   var safeZoneDiv = createDiv("Safe Zone");
   safeZoneDiv.parent(ctrlDiv);
@@ -669,27 +856,47 @@ function update() {
 
 
 function drawBug(b) {
-
-  var cx = b.pos.x * cellW + cellW / 2;
-  var cy = b.pos.y * cellH + cellH / 2;
-  var r = cellW * 0.8 / 2
+  var r = cellW / 2
 
   stroke(0x7f, 0x60);
   fill(b.genome.color);
-  circle(cx, cy, 2 * r);
+  circle(b.cx, b.cy, 2 * r * 0.8);
 
   stroke(255)
-  line(cx, cy, cx + r * cos1(b.dir), cy + r * sin1(b.dir));
+  line(b.cx, b.cy, b.cx + r * cos_1(b.dir), b.cy + r * sin_1(b.dir));
+  b.clearCache();
+}
+
+
+function drawPheromone(p) {
+  stroke(0, 0x80, 0xff, 0x90 * p.level);
+  noFill();
+  circle(p.cx, p.cy, cellW);
+}
+
+
+function fastForward(gens) {
+  noLoop();
+  while (gens-- > 0) {
+    while (iteration++ <= genIterations) {
+      update();
+    }
+
+    nextGeneration();
+  }
+  loop();
 }
 
 
 function draw() {
   updateSafeZone();
+  board.fadePheromones();
   update();
   iteration++;
   
   //background(32);
   fill(0x1f, 0x60);
+  noStroke();
   rect(0, 0, width, height);
   
   // Draw grid.
@@ -705,8 +912,9 @@ function draw() {
   */
 
   board.bugs.forEach(drawBug);
+  board.pheromones.forEach(drawPheromone);
   
-  fill(0, 0x70, 0, 0x08);
+  fill(0, 0x70, 0, 0x10);
   noStroke();
   rect(safeZone.x1 * cellW, safeZone.y1 * cellH,
     (safeZone.x2 - safeZone.x1) * cellW,
@@ -714,17 +922,6 @@ function draw() {
   
   fill(200);
   text(iteration, 2, height - 5);
-
-  /*
-  // Normalized directions
-  // Make Y negative so up is negative, add PI to fix dumb atan range.
-  var dir = atan2(-((height/2)-mouseY),(width/2)-mouseX) + PI;
-  var d1 = dir / (2 * PI);
-  var d2 = round(d1 * 8) % 8;
-  text(dir, 0, 10);
-  text(d1, 0, 20);
-  text(d2, 0, 30);
-  */
   
   if (iteration > genIterations) {
     nextGeneration();
