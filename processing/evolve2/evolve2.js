@@ -88,22 +88,13 @@ class Board {
     var sy = 0;
     var cnt = 0;
 
-    var min_x = max(x - r, 0);
-    var max_x = min(x + r, this.width - 1);
-    var min_y = max(y - r, 0);
-    var max_y = min(y + r, this.height - 1);
-
-    for (var _y = min_y; _y <= max_y; _y++) {
-      for (var _x = min_x; _x <= max_x; _x++) {
-         var p = this.phmIndex[this.getIndex(_x, _y)];
-         
-         if (p != undefined) {
-           sx += p.pos.x * p.level;
-           sy += p.pos.y * p.level;
-           cnt += p.level;
-         }
-      }
-    }
+    this.iterItems(x, y, r, this.phmIndex, (p) => {
+     if (p != undefined) {
+       sx += p.pos.x * p.level;
+       sy += p.pos.y * p.level;
+       cnt += p.level;
+     }
+    });
 
     if (cnt > 0) {
       return {x: round(sx / cnt), y: round(sy / cnt)};
@@ -128,12 +119,18 @@ class Board {
     return {x: index % this.width, y: int(index / this.width)};
   }
   
-  neighborCount(x, y) {
-    let n = (x, y) => this.getCell(x, y) != undefined ? 1 : 0;
+  neighborCount(x, y, r) {
+    let count = 0;
+    let total = 0;
     
-    return n(x - 1, y - 1) + n(x, y - 1) + n(x + 1, y - 1) +
-           n(x - 1, y)     +               n(x + 1, y)     +
-           n(x - 1, y + 1) + n(x, y + 1) + n(x + 1, y + 1);
+    this.iterItems(x, y, r, this.board, (b) => {
+     if (b != undefined) {
+       count++;
+     }
+     total++;
+    });
+    
+    return [count, total];
   }
 
   getNeighborCenter(x, y, r) {
@@ -141,22 +138,13 @@ class Board {
     var sy = 0;
     var cnt = 0;
 
-    var min_x = max(x - r, 0);
-    var max_x = min(x + r, this.width - 1);
-    var min_y = max(y - r, 0);
-    var max_y = min(y + r, this.height - 1);
-
-    for (var _y = min_y; _y <= max_y; _y++) {
-      for (var _x = min_x; _x <= max_x; _x++) {
-         var p = this.board[this.getIndex(_x, _y)];
-         
-         if (p != undefined) {
-           sx += p.pos.x;
-           sy += p.pos.y;
-           cnt++;
-         }
-      }
-    }
+    this.iterItems(x, y, r, this.board, (b) => {
+     if (b != undefined) {
+       sx += b.pos.x;
+       sy += b.pos.y;
+       cnt++;
+     }
+    });
 
     if (cnt > 0) {
       return {x: round(sx / cnt), y: round(sy / cnt)};
@@ -164,7 +152,21 @@ class Board {
 
     return undefined;
   }
+  
+  iterItems(x, y, r, table, fn) {
+    var min_x = max(x - r, 0);
+    var max_x = min(x + r, this.width - 1);
+    var min_y = max(y - r, 0);
+    var max_y = min(y + r, this.height - 1);
 
+    for (var _y = min_y; _y <= max_y; _y++) {
+      for (var _x = min_x; _x <= max_x; _x++) {
+        if (dist(x, y, _x, _y) <= r) {
+          fn(table[this.getIndex(_x, _y)]);
+        }
+      }
+    }
+  }
 
   // Gets the coord of a move in dir (0..1)
   // 0=E, 1=NE, 2=N, 3=NW, 4=W, 5=SW, 6=S, 7=SE
@@ -352,19 +354,23 @@ class Brain {
       new InputNeuron("FWDIR", () => b.dir),
       new InputNeuron("BLCKD", () => b.isBlocked),
       new InputNeuron("NBCNT", () => norm(b.neighborCount, 0, 8)),
-      new InputNeuron("SAFTY", () => b.safety),
+      //new InputNeuron("SAFTY", () => b.safety),
       new InputNeuron("FWSAF", () => b.isSafeAhead),
       new InputNeuron("NBDIR", () => b.neighborDir),
       new InputNeuron("RANDM", () => random()),
       new InputNeuron("OSCLR", () => norm((iteration + oscOffset) % 30, 0, 30)),
       new InputNeuron("PHDIR", () => b.pheromoneDir),
       new InputNeuron("_AGE_", () => b.age),
+      new InputNeuron("HUNGR", () => b.hunger),
+      //new InputNeuron("X_POS", () => b.posX),
+      //new InputNeuron("Y_POS", () => b.posY),
     ];
 
     this.outputs = [
       new OutputNeuron("MVFWD", x => b.moveForward(x)),
       new OutputNeuron("MVBWD", x => b.moveBackward(x)),
       //new OutputNeuron("MVRND", x => b.moveRandom(x)),
+      new OutputNeuron("SETDR", x => b.setDir(x)),
       new OutputNeuron("TURND", x => b.turn(x)),
       new OutputNeuron("APHRM", x => b.dropPheromone(x)),
     ];
@@ -464,6 +470,8 @@ class Bug {
     this.pos = pos;
     this.dir = random();  // angle 0-1 like PICO-8
     this.genome = new Genome();
+    this.hungerVal = 1;
+    this.metabolism = 1 / (genIterations * 0.8);
     
     if (genome == undefined) {
       this.genome.randomize(geneCount);
@@ -477,6 +485,7 @@ class Bug {
 
   clearCache() {
     this.pheromoneDirVal = undefined;
+    this.neighborCountVal = undefined;
     this.neighborDirVal = undefined;
   }
 
@@ -494,12 +503,18 @@ class Bug {
   }
   
   get neighborCount() {
-    return board.neighborCount(this.pos.x, this.pos.y);
+    if (this.neighborCountVal == undefined) {
+      const rad = 3;
+      var [count, total] = board.neighborCount(this.pos.x, this.pos.y, rad);
+      this.neighborCountVal = count / total;
+    }
+    
+    return this.neighborCountVal;
   }
 
   get pheromoneDir() {
     if (this.pheromoneDirVal == undefined) {
-      const rad = 7;
+      const rad = 5;
       let phmCenter = board.getPheromoneCenter(this.pos.x, this.pos.y, rad);
 
       if (phmCenter == undefined ||
@@ -508,11 +523,6 @@ class Bug {
       }
 
       this.pheromoneDirVal = atan2_1(this.pos.x - phmCenter.x, this.pos.y - phmCenter.y);
-
-      //stroke(255);
-      //noFill();
-      //circle(this.cx, this.cy, rad * 2 * cellW);
-      //line(this.cx, this.cy, this.cx + (cos_1( this.pheromoneDirVal) * 30), this.cy + (sin_1( this.pheromoneDirVal) * 30));
       stroke(0, 0x80, 0xff, 0x90);
       line(this.cx, this.cy, phmCenter.x * cellW, phmCenter.y * cellH);
     }
@@ -522,7 +532,7 @@ class Bug {
 
   get neighborDir() {
     if (this.neighborDirVal == undefined) {
-      const rad = 7;
+      const rad = 5;
       let nCenter = board.getNeighborCenter(this.pos.x, this.pos.y, rad);
 
       if (nCenter == undefined ||
@@ -531,11 +541,6 @@ class Bug {
       }
 
       this.neighborDirVal = atan2_1(this.pos.x - nCenter.x, this.pos.y - nCenter.y);
-
-      //stroke(255);
-      //noFill();
-      //circle(this.cx, this.cy, rad * 2 * cellW);
-      //line(this.cx, this.cy, this.cx + (cos_1(this.neighborDirVal) * 30), this.cy + (sin_1(this.neighborDirVal) * 30));
       stroke(0x80, 0x80);
       line(this.cx, this.cy, nCenter.x * cellW, nCenter.y * cellH);
     }
@@ -545,6 +550,18 @@ class Bug {
 
   get age() {
     return iteration / genIterations;
+  }
+  
+  get hunger() {
+    return this.hungerVal;
+  }
+  
+  get posX() {
+    return norm(this.pos.x, 0, board.width - 1);
+  }
+  
+  get posY() {
+    return norm(this.pos.x, 0, board.width - 1);
   }
   
   get safety() {
@@ -577,11 +594,28 @@ class Bug {
   }
 
   update() {
+    if (this.hunger <= 0) {
+      return;
+    }
+
+    if (isSafe(this.pos.x, this.pos.y)) {
+      this.hungerVal += this.metabolism;
+    } else {
+      this.hungerVal -= this.metabolism;
+    }
+    
+    this.hungerVal = mid(0, this.hungerVal, 1);
+    
+    this.clearCache();
     this.brain.activate();
   }
 
   turn(level) {
     this.dir = fract(abs(this.dir + level));
+  }
+  
+  setDir(level) {
+    this.dir = fract(abs(level));
   }
 
   moveForward(level) {
@@ -651,6 +685,7 @@ var hiddenCount = 3;
 var mutationRate = 0.001;
 const genIterations = 120;
 var iteration = 0;
+var fastForwardGens = 0;
 
 var debugDiv;
 var sldX1;
@@ -782,9 +817,9 @@ function setup() {
   pauseBtn.mousePressed(toggleLoop);
   pauseBtn.parent(ctrlDiv);
 
-  var pauseBtn = createButton("Skip 10");
-  pauseBtn.mousePressed(() => fastForward(10));
-  pauseBtn.parent(ctrlDiv);
+  var ffBtn = createButton("Skip 10");
+  ffBtn.mousePressed(() => { fastForwardGens = 10; });
+  ffBtn.parent(ctrlDiv);
   
   var safeZoneDiv = createDiv("Safe Zone");
   safeZoneDiv.parent(ctrlDiv);
@@ -855,16 +890,22 @@ function update() {
 }
 
 
-function drawBug(b) {
-  var r = cellW / 2
+function drawBug(b) {  
+  var r = cellW / 2;
+
+  if (b.hunger == 0) {
+    noStroke();
+    fill(0x80);
+    circle(b.cx, b.cy, 2 * r * 0.8);
+    return;
+  }
 
   stroke(0x7f, 0x60);
   fill(b.genome.color);
   circle(b.cx, b.cy, 2 * r * 0.8);
 
-  stroke(255)
+  stroke(255);
   line(b.cx, b.cy, b.cx + r * cos_1(b.dir), b.cy + r * sin_1(b.dir));
-  b.clearCache();
 }
 
 
@@ -875,20 +916,22 @@ function drawPheromone(p) {
 }
 
 
-function fastForward(gens) {
-  noLoop();
-  while (gens-- > 0) {
+function draw() {
+  
+  if (fastForwardGens > 0) {
     while (iteration++ <= genIterations) {
       update();
     }
-
+    
+    background(32);
+    board.bugs.forEach(drawBug);
+    
     nextGeneration();
+    fastForwardGens--;
+    
+    return;
   }
-  loop();
-}
-
-
-function draw() {
+  
   updateSafeZone();
   board.fadePheromones();
   update();
