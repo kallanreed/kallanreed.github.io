@@ -61,8 +61,11 @@ class Board {
   }
   
   addBug(b) {
-    this.bugs.push(b);
-    this.setCell(b.pos.x, b.pos.y, b);
+    var ix = this.getIndex(b.pos.x, b.pos.y);
+    if (this.board[ix] == undefined) {
+      this.bugs.push(b);
+      this.board[ix] = b;
+    }
   }
 
   addPheromone(p) {
@@ -89,11 +92,11 @@ class Board {
     var cnt = 0;
 
     this.iterItems(x, y, r, this.phmIndex, (p) => {
-     if (p != undefined) {
-       sx += p.pos.x * p.level;
-       sy += p.pos.y * p.level;
-       cnt += p.level;
-     }
+      if (p != undefined) {
+        sx += p.pos.x * p.level;
+        sy += p.pos.y * p.level;
+        cnt += p.level;
+      }
     });
 
     if (cnt > 0) {
@@ -139,11 +142,11 @@ class Board {
     var cnt = 0;
 
     this.iterItems(x, y, r, this.board, (b) => {
-     if (b != undefined) {
-       sx += b.pos.x;
-       sy += b.pos.y;
-       cnt++;
-     }
+      if (b != undefined) {
+        sx += b.pos.x;
+        sy += b.pos.y;
+        cnt++;
+      }
     });
 
     if (cnt > 0) {
@@ -464,6 +467,9 @@ class Pheromone {
   }
 }
 
+function my_dist(x1, y1, x2, y2) {
+  return sqrt(pow(x2-x1,2)+pow(y2-y1,2));
+}
 
 class Bug {
   constructor(pos, genome) {
@@ -515,16 +521,16 @@ class Bug {
   get pheromoneDir() {
     if (this.pheromoneDirVal == undefined) {
       const rad = 5;
-      let phmCenter = board.getPheromoneCenter(this.pos.x, this.pos.y, rad);
+      var phmCenter = board.getPheromoneCenter(this.pos.x, this.pos.y, rad);
 
       if (phmCenter == undefined ||
         (this.pos.x == phmCenter.x && this.pos.y == phmCenter.y)) {
-        return -1;
+        this.pheromoneDirVal =-1;
+      } else {
+        this.pheromoneDirVal = atan2_1(this.pos.x - phmCenter.x, this.pos.y - phmCenter.y);
+        stroke(0, 0x80, 0xff, 0x90);
+        line(this.cx, this.cy, phmCenter.x * cellW, phmCenter.y * cellH);
       }
-
-      this.pheromoneDirVal = atan2_1(this.pos.x - phmCenter.x, this.pos.y - phmCenter.y);
-      stroke(0, 0x80, 0xff, 0x90);
-      line(this.cx, this.cy, phmCenter.x * cellW, phmCenter.y * cellH);
     }
     
     return this.pheromoneDirVal;
@@ -533,16 +539,16 @@ class Bug {
   get neighborDir() {
     if (this.neighborDirVal == undefined) {
       const rad = 5;
-      let nCenter = board.getNeighborCenter(this.pos.x, this.pos.y, rad);
+      var nCenter = board.getNeighborCenter(this.pos.x, this.pos.y, rad);
 
       if (nCenter == undefined ||
         (this.pos.x == nCenter.x && this.pos.y == nCenter.y)) {
-        return -1;
+        this.neighborDirVal = -1;
+      } else {
+        this.neighborDirVal = atan2_1(this.pos.x - nCenter.x, this.pos.y - nCenter.y);
+        stroke(0x80, 0x80);
+        line(this.cx, this.cy, nCenter.x * cellW, nCenter.y * cellH);
       }
-
-      this.neighborDirVal = atan2_1(this.pos.x - nCenter.x, this.pos.y - nCenter.y);
-      stroke(0x80, 0x80);
-      line(this.cx, this.cy, nCenter.x * cellW, nCenter.y * cellH);
     }
 
     return this.neighborDirVal;
@@ -715,7 +721,6 @@ function init() {
   board.reset();
   
   for (var i = 0; i < bugCount; i++) {
-    // TODO: collision
     const ix = int(random(maxBoardIndex));
     board.addBug(new Bug(board.getCoord(ix)));
   }
@@ -779,7 +784,8 @@ function nextGeneration()
   
   var survivors = [];
   board.bugs.forEach(b => {
-    if (isSafe(b.pos.x, b.pos.y)) {
+    //if (isSafe(b.pos.x, b.pos.y)) {
+    if (b.hunger > 0) {
       survivors.push(b);
     }
   });
@@ -792,7 +798,6 @@ function nextGeneration()
   
   survivors.forEach(b => {
     for (var i = 0; i < stats.offspringPerSurvivor; i++) {
-      // TODO: collision
       const ix = int(random(maxBoardIndex));
       board.addBug(new Bug(board.getCoord(ix), b.genome));
     }
@@ -917,7 +922,6 @@ function drawPheromone(p) {
 
 
 function draw() {
-  
   if (fastForwardGens > 0) {
     while (iteration++ <= genIterations) {
       update();
