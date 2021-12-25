@@ -77,6 +77,18 @@ h1 {
     background-image: url("arythea.png");
 }
 
+#char5 {
+    background-image: url("wolfhawk.png");
+}
+
+#char6 {
+    background-image: url("braevalar.png");
+}
+
+#char7 {
+    background-image: url("krang.png");
+}
+
 /* portrait and inventory */
 #character-group {
     width: 100%;

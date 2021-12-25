@@ -206,6 +206,9 @@ function UIContext()
         document.getElementById("char2"),
         document.getElementById("char3"),
         document.getElementById("char4"),
+        document.getElementById("char5"),
+        document.getElementById("char6"),
+        document.getElementById("char7"),
     ];
 
     // screen 2 controls
@@ -270,6 +273,24 @@ function UIContext()
             crystals: [2,0,0,1],
             portrait: "content/arythea.png"
         },
+        {
+            name: "Wolfhawk",
+            deck: [0,0,0,0,1,1,1,1,2,2,2,2,3,3,3,3],
+            crystals: [0,0,1,2],
+            portrait: "content/wolfhawk.png"
+        },
+        {
+            name: "Braevalar",
+            deck: [0,0,0,0,1,1,1,1,2,2,2,2,3,3,3,3],
+            crystals: [0,1,2,0],
+            portrait: "content/braevalar.png"
+        },
+        {
+            name: "Krang",
+            deck: [0,0,0,0,1,1,1,1,2,2,2,2,3,3,3,3],
+            crystals: [2,1,0,0],
+            portrait: "content/krang.png"
+        }
     ];
 
     // sets up the main screen for the first time
