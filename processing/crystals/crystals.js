@@ -67,8 +67,8 @@ class Crystal
 class Board
 {
   constructor(w, h) {
-    this.rowHeight = 80;
-    this.colWidth = 80;
+    this.rowHeight = 65;
+    this.colWidth = 65;
     this.rowCount = floor(h / this.rowHeight);
     this.colCount = floor(w / this.colWidth);
     this.cells = [];
