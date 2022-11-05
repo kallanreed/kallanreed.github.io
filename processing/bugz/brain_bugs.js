@@ -216,7 +216,7 @@ class Bug {
     if (this.x < 0) { this.x += windowWidth; }
     if (this.x > windowWidth) { this.x -= windowWidth; }
     if (this.y < 0) { this.y += windowHeight; }
-    if (this.y > windowHeight) { this.x -= windowHeight; }
+    if (this.y > windowHeight) { this.y -= windowHeight; }
   }
 
   draw() {
