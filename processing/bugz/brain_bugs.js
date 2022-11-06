@@ -16,6 +16,9 @@ class Node {
   constructor() {
     this.inputs = [];
     this.value = 0;
+    
+    // Allow skipping unconnected nodes.
+    this.needEval = false;
   }
 
   addInput(src, weight) {
@@ -26,9 +29,11 @@ class Node {
   }
 
   evaluate() {
-    var total = 0;
-    this.inputs.forEach(i => total += i.src.value * i.weight);
-    this.value = tanh(total);
+    if (this.needsEval) {
+      var total = 0;
+      this.inputs.forEach(i => total += (i.src.value * i.weight));
+      this.value = tanh(total);
+    }
   }
 }
 
@@ -39,7 +44,9 @@ class Sense extends Node {
   }
 
   evaluate() {
-    this.value = this.inputFn();
+    if (this.needsEval) {
+      this.value = this.inputFn();
+    }
   }
 }
 
@@ -60,7 +67,7 @@ class Genome {
   }
 
   randomize() {
-    for (var i = 0; i < 10; i++) {
+    for (var i = 0; i < 14; i++) {
       this.genes.push(floor(random(0x10000)));
     }
   }
@@ -79,32 +86,35 @@ class Brain {
   constructor(bug) {
     this.bug = bug;
     this.inputs = [
-      new Sense(() => random(-1, 1)), 
-      new Sense(() => this.bug.lookForward()), 
-      new Sense(() => this.bug.deltaEnergy), 
-      new Sense(() => this.bug.energy), 
-      new Sense(() => cos(frameCount / 180)), 
+      new Sense(() => random(-1, 1)),
+      //new Sense(() => this.bug.lookForward()),
+      new Sense(() => this.bug.lookLeft()),
+      new Sense(() => this.bug.lookRight()),
+      new Sense(() => this.bug.deltaEnergy),
+      new Sense(() => this.bug.energy),
+      new Sense(() => cos(frameCount / 180)),
+      new Sense(() => this.bug.hasNeighbor()),
     ];
 
     this.hidden = [
-      new Node(), 
-      new Node(), 
-      new Node(), 
+      new Node(),
+      new Node(),
+      new Node(),
+      new Node(),
+      new Node(),
     ];
 
     this.outputs = [
       new Action(v => {
-      if (v > 0.5) {
-        bug.walkForward();
-      }
-    }
-    ), 
+        if (v > 0.5) {
+          bug.walkForward(v);
+        }
+      }), 
       new Action(v => {
-      if (v > 0.5) {
-        bug.walkBackward();
-      }
-    }
-    ), 
+        if (v > 0.5) {
+          bug.walkBackward();
+        }
+      }),
       new Action(v => bug.turn(v)), 
     ];
 
@@ -133,6 +143,8 @@ class Brain {
     weight = (weight - 0.5) * 4;
 
     dst[dstId].addInput(src[srcId], weight);
+    src[srcId].needsEval = true;
+    dst[dstId].needsEval = true;
   }
 
   update() {
@@ -162,9 +174,15 @@ class Bug {
     this.brain = new Brain(this);
   }
 
-  walkForward() {
+  walkForward(val) {
     this.x += cos(this.dir);
     this.y -= sin(this.dir);
+    
+    // Dash.
+    if (val >= 0.8) {
+      this.x += cos(this.dir);
+      this.y -= sin(this.dir);
+    }
   }
 
   walkBackward() {
@@ -173,19 +191,45 @@ class Bug {
   }
 
   lookForward() {
-    var x = this.x + (this.dia * cos(this.dir));
-    var y = this.y - (this.dia * sin(this.dir));
+    return this.lookDir(0);
+  }
+  
+  lookLeft() {
+    return this.lookDir(PI/4);
+  }
+  
+  lookRight() {
+    return this. lookDir(-PI/4);
+  }
+  
+  lookDir(ddir) {
+    var r = 16;
+    var x = this.x + (r * cos(this.dir + ddir));
+    var y = this.y - (r * sin(this.dir + ddir));
 
-    stroke(0, 255, 255, 60);
-    circle(x, y, this.dia * 2);
+    stroke('#4C99C940');
+    strokeWeight(1);
+    circle(x, y, r * 2);
 
-    if (overlapsFood(x, y, this.r) !== null) { 
+    if (overlapsFood(x, y, r) !== null) { 
       return 1;
     }
-    if (overlapsTrap(x, y, this.r) !== null) { 
+    if (overlapsTrap(x, y, r) !== null) { 
       return -1;
     }
 
+    return 0;
+  }
+  
+  hasNeighbor() {
+    var n = getNeighbor(this);
+    if (n !== null) {
+      stroke('#F668AC');
+      strokeWeight(1);
+      circle(this.x, this.y + 2, 4);
+      return 1;
+    }
+    
     return 0;
   }
 
@@ -205,7 +249,7 @@ class Bug {
     }
 
     if (overlapsTrap(this.x, this.y, this.r)) {
-      this.energy -= 0.025;
+      this.energy -= 0.1;
     }
 
     this.deltaEnergy = this.energy - startingEnergy;
@@ -220,22 +264,28 @@ class Bug {
   }
 
   draw() {
+    strokeWeight(2);
+    
     if (!this.alive) {
-      stroke(128);
+      // Dead
+      stroke(128, 48);
       circle(this.x, this.y, this.dia);
       return false;
     }
 
-    stroke(255, 255, 0);
-    line(this.x, this.y, 
-      this.x + (5 * cos(this.dir)), 
-      this.y - (5 * sin(this.dir)));
-
-    stroke(0, 255, 0);
-    line(this.x - 5, this.y, this.x - 5 + (10 * this.energy), this.y);
-
-    stroke(255, 120, 70);
+    // Body
+    stroke('#FA5859');
     circle(this.x, this.y, this.dia);
+    
+    // Direction
+    stroke('#F7EBE8'); 
+    line(this.x, this.y, 
+      this.x + (this.r * cos(this.dir)), 
+      this.y - (this.r * sin(this.dir)));
+
+    // Health
+    stroke('#37BB8C');
+    line(this.x - 5, this.y, this.x - 5 + (10 * this.energy), this.y);
 
     this.update();
     return this.alive;
@@ -247,46 +297,63 @@ class Item {
     this.x = x;
     this.y = y;
     this.r = r;
-    this.dia = this.r * 2;
+    this.dx = (random() - 0.5) / 3;
+    this.dy = (random() - 0.5) / 3;
+    this.valid = true;
+  }
+  
+  dia() { return this.r * 2; }
+  
+  update() {
+    this.x += this.dx;
+    this.y += this.dy;
+    
+    if (this.x < 0) { this.x += windowWidth; }
+    if (this.x > windowWidth) { this.x -= windowWidth; }
+    if (this.y < 0) { this.y += windowHeight; }
+    if (this.y > windowHeight) { this.y -= windowHeight; }
   }
 }
 
 class Food extends Item {
   constructor(x, y) {
-    super(x, y, 8);
+    super(x, y, floor(random(4, 9)));
   }
 
   draw() {
-    stroke(0, 255, 0);
-    circle(this.x, this.y, this.dia);
+    stroke('#8CB244');
+    strokeWeight(2);
+    circle(this.x, this.y, this.dia());
+    this.update();
   }
 
   eat() {
-    this.r -= 0.5;
-    this.dia = this.r * 2;
+    this.r -= 1;
+    this.valid = this.r > 0;
   }
 }
 
 class Danger extends Item {
   constructor(x, y) {
-    super(x, y, 10);
+    super(x, y, floor(random(6, 11)));
   }
 
   draw() {
     stroke(255, 0, 0);
-    circle(this.x, this.y, this.dia);
+    strokeWeight(2);
+    circle(this.x, this.y, this.dia());
+    this.update();
   }
 }
 
 var bugs = [];
 var food = [];
 var traps = [];
-var bestBug = null;
 
 function overlapsAnyItem(items, x, y, r) {
   for (var i = 0; i < items.length; i++) {
     var item = items[i];
-    if (overlaps(x, y, r, item.x, item.y, item.r)) {
+    if (item.valid && overlaps(x, y, r, item.x, item.y, item.r)) {
       return item;
     }
   }
@@ -294,12 +361,23 @@ function overlapsAnyItem(items, x, y, r) {
 }
 
 function overlapsFood(x, y, r) {
-  var f = overlapsAnyItem(food, x, y, r);
-  return f !== null && f.r > 0 ? f : null;
+  return overlapsAnyItem(food, x, y, r);
 }
 
 function overlapsTrap(x, y, r) {
   return overlapsAnyItem(traps, x, y, r);
+}
+
+function getNeighbor(b) {
+  // TODO: index to remove n^2.
+  for (const x of bugs) {
+    if (b !== x && x.alive &&
+        overlaps(b.x, b.y, b.r * 5, x.x, x.y, x.r)) {
+      return x;
+    }
+  }
+  
+  return null;
 }
 
 function setup() {
@@ -308,44 +386,55 @@ function setup() {
 }
 
 function initBoard() {
+  // Sort the most successful first.
+  bugs.sort((a, b) => a.ateCount > b.ateCount);
   var oldBugs = bugs;
   bugs = [];
   food = [];
   traps = [];
   var i = 0;
   var g = null;
+  var maxBugs = 100;
 
-  if (oldBugs.length > 0) {
-    for (i = 0; i < oldBugs.length; i++) {
-      var ob = oldBugs[i];
-      for (var j = 0; j < ob.ateCount; j++) {
-        g = new Genome();
-        g.mutateFrom(ob.genome);
-        bugs.push(new Bug(windowWidth / 2, windowHeight / 2, 0, g));
-      }
-    }
-  } else {
-    for (i = 0; i < 100; i++) {
+  for (i = 0; i < oldBugs.length; i++) {
+    var ob = oldBugs[i];
+    for (var j = 0; j < ob.ateCount && bugs.length < maxBugs; j++) {
       g = new Genome();
-      g.randomize();
-      bugs.push(new Bug(windowWidth / 2, windowHeight / 2, 0, g));
+      g.mutateFrom(ob.genome);
+      bugs.push(new Bug(windowWidth / 2, windowHeight / 2, PI/2, g));
     }
   }
-
-  for (i = 0; i < 50; i++) {
+  
+  // Add randos if there weren't any added from the last iteration.
+  if (bugs.length == 0) {
+    for (i = 0; i < maxBugs; i++) {
+      g = new Genome();
+      g.randomize();
+      bugs.push(new Bug(windowWidth / 2, windowHeight / 2, PI/2, g));
+    }
+  }
+  
+  var area = windowHeight * windowWidth; 
+  
+  for (i = 0; i < area / 8000; i++) {
     food.push(new Food(random(windowWidth), random(windowHeight)));
   }
 
-  for (i = 0; i < 20; i++) {
-    traps.push(new Danger(random(windowWidth), random(windowHeight)));
+  for (i = 0; i < area / 15000; i++) {
+    var danger = new Danger(random(windowWidth), random(windowHeight));
+    
+    if (!overlaps(windowWidth / 2, windowHeight / 2, 100, danger.x, danger.y, danger.r)) {
+      traps.push(danger);
+    }
   }
 
   background(0);
 }
 
 function draw() {
-  background(0);
+  background('#1E1E24');
   noFill();
+  noStroke();
   var anyAlive = false;
 
   bugs.forEach(b => {
