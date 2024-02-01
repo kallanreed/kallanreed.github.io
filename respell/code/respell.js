@@ -162,6 +162,7 @@ class ReSpeller
         t.add("uː",  {s: "oo",  isVowel: true });
         t.add("aʊ",  {s: "ow",  isVowel: true });
         t.add("ʌ",   {s: "uh",  isVowel: true });
+        t.add("ɹ̩",   {s: "er",  isVowel: true });
         t.add("ɜ",   {s: "er",  isVowel: true });
         t.add("ɜr",  {s: "ur",  isVowel: true });
         t.add("ɜːr", {s: "ur",  isVowel: true });
@@ -235,6 +236,26 @@ class ReSpeller
     }
 }
 
+// Basic IPA symbols keyboard
+function buildKeyboard(fn) {
+    const kb = document.getElementById("keyboard");
+    const clear = document.getElementById("clear-btn");
+    const keys = [
+        "'", "tʃ", "ʤ", "ɡ", "ŋ", "ɹ", "ʃ", "θ", "ð", "ʒ",
+        "ː", "i", "ɪ", "e", "ɛ", "a", "æ", "ɑ", "ɒ", "o",
+        "u", "ʊ", "ʌ", "ɔ", "ɹ̩", "ɜ", "ə"
+    ];
+
+    for (let k of keys) {
+        const elm = document.createElement("button");
+        elm.innerText = k;
+        elm.onclick = function() {
+            fn(this.innerText);
+        };
+        kb.insertBefore(elm, clear);
+    }
+}
+
 class ReSpellContext
 {
     constructor()
@@ -242,11 +263,22 @@ class ReSpellContext
         this.respell = new ReSpeller();
         this.input = document.getElementById("input-text");
         this.output = document.getElementById("output");
+        this.clear = document.getElementById("clear-btn");
         let that = this;
 
         this.input.onchange = function() {
             that.output.innerText = that.respell.parse(this.value);
         };
+
+        this.clear.onclick = function() {
+            that.input.value = "";
+            that.output.innerText = "";
+        };
+
+        buildKeyboard(t => {
+            that.input.value += t;
+            that.input.onchange();
+        });
 
         this.input.onchange();
     }    

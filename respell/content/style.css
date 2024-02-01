@@ -1,6 +1,8 @@
 body {
     font-family: Verdana, Geneva, Tahoma, sans-serif;
     margin: 0px;
+    background-color: #1a110d;
+    color: #f8f2e7;
 }
 
 #content {
@@ -29,12 +31,29 @@ h1 {
     flex: 1 1 auto;
     width: 100px;
     border: none;
-    border-bottom: 1px solid black;
+    border-bottom: 1px solid #f8f2e7;
     font-size: 12pt;
+    background-color: #231712;
+    color: #f8f2e7;
 }
 
 #output {
     margin-top: 1em;
+}
+
+#keyboard {
+    margin-top: 1em;
+}
+
+button {
+    background-color: #4d4a49;
+    color: #f8f2e7;
+    border-radius: 3px;
+    border-width: 1px;
+    height: 2em;
+    width: 2em;
+    font-size: large;
+    margin: 1px;
 }
 
 #info {
@@ -50,5 +69,5 @@ h1 {
 
 #info a:hover {
     text-decoration: none;
-    color: #444444;
+    color: #dddddd;
 }
