@@ -241,7 +241,7 @@ function buildKeyboard(fn) {
     const kb = document.getElementById("keyboard");
     const clear = document.getElementById("clear-btn");
     const keys = [
-        "'", "tʃ", "ʤ", "ɡ", "ŋ", "ɹ", "ʃ", "θ", "ð", "ʒ",
+        "ˈ", "tʃ", "ʤ", "ɡ", "ŋ", "ɹ", "ʃ", "θ", "ð", "ʒ",
         "ː", "i", "ɪ", "e", "ɛ", "a", "æ", "ɑ", "ɒ", "o",
         "u", "ʊ", "ʌ", "ɔ", "ɹ̩", "ɜ", "ə"
     ];
