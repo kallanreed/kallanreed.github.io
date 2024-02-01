@@ -54,6 +54,7 @@ button {
     width: 2em;
     font-size: large;
     margin: 1px;
+    padding: 0px;
 }
 
 #info {
