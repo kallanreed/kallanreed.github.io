@@ -1775,6 +1775,7 @@ void Global_destroy(struct Global *this) /*{{{*/
           }
           break;
         }
+        case LOCALVAR: break; /* no heap sub-allocations; name+sym freed below */
         default: assert(0);
       }
       free(v->name);
