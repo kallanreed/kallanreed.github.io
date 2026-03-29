@@ -1,1 +1,9 @@
 .DS_Store
+
+mk-dummy/content/raw/*
+
+# BASIC applet - build artifacts (dist/ is intentionally checked in)
+basic/node_modules/
+basic/.vite/
+basic/bas/*.o
+basic/bas/bas

@@ -1,0 +1,12 @@
+{
+  "name": "BASIC",
+  "short_name": "BASIC",
+  "description": "GW-BASIC interpreter for iPhone",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#00ff41",
+  "icons": [
+    { "src": "content/icon.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
