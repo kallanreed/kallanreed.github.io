@@ -35,6 +35,12 @@ export function saveFile(name, source) {
   }));
 }
 
+export function ensureFile(name, source) {
+  if (loadFile(name) !== null) return false;
+  saveFile(name, source);
+  return true;
+}
+
 export function deleteFile(name) {
   const idx = getIndex().filter(n => n !== name);
   setIndex(idx);
@@ -52,12 +58,27 @@ export function renameFile(oldName, newName) {
 export function exportFile(name) {
   const source = loadFile(name);
   if (source === null) return;
+  const filename = name.endsWith('.bas') ? name : name + '.bas';
   const blob = new Blob([source], { type: 'text/plain' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = name.endsWith('.bas') ? name : name + '.bas';
-  a.click();
-  URL.revokeObjectURL(a.href);
+  const url = URL.createObjectURL(blob);
+
+  const opened = window.open(url, '_blank', 'noopener');
+  if (opened) {
+    opened.document.title = filename;
+  } else {
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.rel = 'noopener';
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }
+
+  setTimeout(() => {
+    URL.revokeObjectURL(url);
+  }, 60_000);
 }
 
 export function importFile(onImported) {

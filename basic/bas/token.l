@@ -74,6 +74,7 @@ static void string2(void) /*{{{*/
  /* flex options and definitions */ /*{{{*/
 %option noyywrap
 %option nounput
+%option caseless
 %x DATAINPUT ELSEIF IMAGEFMT
 REAL		([0-9]+("!"|"#"))|([0-9]+\.[0-9]*(e("+"|"-")?[0-9]+)?("!"|"#")?)|([0-9]*\.[0-9]+(e("+"|"-")?[0-9]+)?("!"|"#")?|([0-9]+e("+"|"-")?[0-9]+("!"|"#")?))
 INTEGER		[0-9]+%?

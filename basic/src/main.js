@@ -3,17 +3,32 @@ import { Editor }      from './editor/editor.js';
 import { Keyboard }    from './keyboard/keyboard.js';
 import { Console }     from './console/console.js';
 import { FileBrowser } from './ui/filebrowser.js';
-import { saveFile, loadFile } from './storage/storage.js';
+import { saveFile, loadFile, ensureFile, listFiles, renameFile } from './storage/storage.js';
 
 const DEFAULT_NAME   = 'UNTITLED';
-const DEFAULT_SOURCE = '10 PRINT "HELLO, WORLD!"\n20 GOTO 10\n';
+const DEFAULT_SOURCE = '10 PRINT "HELLO, WORLD!"\n';
+const FIBB_NAME      = 'FIBB';
+const FIBB_SOURCE    = [
+  '10 INPUT N',
+  '20 A=0',
+  '30 B=1',
+  '40 FOR I=1 TO N',
+  '50 PRINT A',
+  '60 T=A+B',
+  '70 A=B',
+  '80 B=T',
+  '90 NEXT I',
+  ''
+].join('\n');
 
 class App {
   constructor() {
     this.currentFile   = DEFAULT_NAME;
     this.mode          = 'edit'; // 'edit' | 'run'
-    this._basModule    = null;
     this._running      = false;
+    this._worker       = null;
+    this._runKeyboardVisible = false;
+    this._awaitingInput = false;
 
     this._buildDOM();
     this._initComponents();
@@ -33,13 +48,15 @@ class App {
       <!-- Edit Mode -->
       <div class="mode-panel active" id="edit-mode">
         <div id="editor-container" style="flex:1;overflow:hidden;display:flex;flex-direction:column;"></div>
-        <div id="keyboard-container"></div>
       </div>
 
       <!-- Run Mode -->
       <div class="mode-panel" id="run-mode">
         <div id="console-container" style="flex:1;overflow:hidden;display:flex;flex-direction:column;"></div>
       </div>
+
+      <!-- Shared keyboard -->
+      <div id="keyboard-container"></div>
 
       <!-- File browser (portal) -->
       <div id="filebrowser-container"></div>
@@ -48,6 +65,8 @@ class App {
 
   // ── Component wiring ──────────────────────────────────────────────────────
   _initComponents() {
+    ensureFile(FIBB_NAME, FIBB_SOURCE);
+
     this.editor   = new Editor(document.querySelector('#editor-container'));
     this.console  = new Console(document.querySelector('#console-container'));
     this.keyboard = new Keyboard(document.querySelector('#keyboard-container'), key => this._onKey(key));
@@ -57,8 +76,7 @@ class App {
       this._updateFilename();
     });
 
-    document.querySelector('#btn-files').addEventListener('click', () => this.browser.show());
-    document.querySelector('#btn-run').addEventListener('click',   () => this._startRun());
+    this._bindEditToolbar();
   }
 
   // ── Key routing ───────────────────────────────────────────────────────────
@@ -93,7 +111,15 @@ class App {
   _updateFilename() {
     const name = this.currentFile.endsWith('.BAS')
       ? this.currentFile : this.currentFile + '.BAS';
-    document.querySelector('#filename').textContent = name;
+    const filenameEl = document.querySelector('#filename');
+    filenameEl.textContent = name;
+    if (this.mode === 'edit') {
+      filenameEl.classList.add('renameable');
+      filenameEl.title = 'Tap to rename';
+    } else {
+      filenameEl.classList.remove('renameable');
+      filenameEl.removeAttribute('title');
+    }
     localStorage.setItem('basic_last_file', this.currentFile);
   }
 
@@ -101,6 +127,7 @@ class App {
   _enterEditMode() {
     this.mode = 'edit';
     this._running = false;
+    this._awaitingInput = false;
     document.querySelector('#edit-mode').classList.add('active');
     document.querySelector('#run-mode').classList.remove('active');
 
@@ -111,25 +138,23 @@ class App {
       <button class="primary" id="btn-run">▶ RUN</button>
     `;
     this._updateFilename();
-    document.querySelector('#btn-files').addEventListener('click', () => this.browser.show());
-    document.querySelector('#btn-run').addEventListener('click',   () => this._startRun());
+    this._bindEditToolbar();
 
-    // Show full keyboard again
-    document.querySelector('#keyboard-container').style.display = '';
+    this._syncKeyboardVisibility();
   }
 
   _enterRunMode() {
     this.mode = 'run';
+    this._awaitingInput = false;
+    this._runKeyboardVisible = false;
     document.querySelector('#edit-mode').classList.remove('active');
     document.querySelector('#run-mode').classList.add('active');
-
-    // Hide the keyword keyboard in run mode (only input strip matters)
-    document.querySelector('#keyboard-container').style.display = 'none';
 
     const tb = document.querySelector('#toolbar');
     tb.innerHTML = `
       <button id="btn-edit">◀ EDIT</button>
       <span class="filename" id="filename" style="color:var(--green-dim)">RUNNING…</span>
+      <button id="btn-kbd">SHOW KBD</button>
       <button class="danger" id="btn-stop">■ STOP</button>
     `;
     document.querySelector('#btn-edit').addEventListener('click', () => {
@@ -140,6 +165,11 @@ class App {
       this._stopRun();
       document.querySelector('#filename').textContent = 'STOPPED';
     });
+    document.querySelector('#btn-kbd').addEventListener('click', () => {
+      this._runKeyboardVisible = !this._runKeyboardVisible;
+      this._syncKeyboardVisibility();
+    });
+    this._syncKeyboardVisibility();
   }
 
   // ── Interpreter ───────────────────────────────────────────────────────────
@@ -148,73 +178,111 @@ class App {
     this._enterRunMode();
     this.console.clear();
 
-    const source = this.editor.getSource();
-    if (!source.trim()) {
+    const rawSource = this.editor.getSource();
+    if (!rawSource.trim()) {
       this.console.write('No program to run.\n');
       return;
     }
+    // Normalize smart/curly quotes to straight ASCII quotes (iOS auto-correct)
+    const source = rawSource
+      .replace(/[\u201C\u201D\u201E\u201F\u2033\u2036]/g, '"')
+      .replace(/[\u2018\u2019\u201A\u201B\u2032\u2035]/g, "'");
 
-    try {
-      await this._runBas(source);
-    } catch (err) {
-      this.console.writeError(`\nInternal error: ${err.message}\n`);
-    }
+    // Fresh worker for every run — isolates C global state, allows clean STOP
+    if (this._worker) this._worker.terminate();
+    this._worker = new Worker('./dist/bas-worker.js');
+    this._running = true;
 
-    if (this._running) {
-      // Program ended normally
-      this.console.write('\nOk\n');
-      document.querySelector('#filename') &&
-        (document.querySelector('#filename').textContent = 'DONE');
+    this._worker.onmessage = (e) => {
+      const msg = e.data;
+      if (msg.type === 'output') {
+        this.console.write(msg.text);
+      } else if (msg.type === 'error') {
+        if (msg.text.includes('stdio streams had content in them that was not flushed')) {
+          return;
+        }
+        this.console.writeError(msg.text);
+      } else if (msg.type === 'input-needed') {
+        this._awaitingInput = true;
+        this._runKeyboardVisible = true;
+        this.console.showInput('? ', line => {
+          if (this._worker) this._worker.postMessage({ type: 'input', line });
+        });
+        this._syncKeyboardVisibility();
+      } else if (msg.type === 'done') {
+        this._running = false;
+        this._awaitingInput = false;
+        this._runKeyboardVisible = false;
+        this._worker = null;
+        const exitCode = msg.exitCode || 0;
+        this.console.write(exitCode === 0 ? '\nOk\n' : `\nExited (${exitCode})\n`);
+        const fn = document.querySelector('#filename');
+        if (fn) fn.textContent = exitCode === 0 ? 'DONE' : 'STOPPED';
+        this._syncKeyboardVisibility();
+      }
+    };
+
+    this._worker.onerror = (e) => {
+      this.console.writeError(`\nWorker error: ${e.message}\n`);
       this._running = false;
-    }
+      this._awaitingInput = false;
+      this._runKeyboardVisible = false;
+      this._worker = null;
+      this._syncKeyboardVisibility();
+    };
+
+    this._worker.postMessage({ type: 'run', source });
   }
 
   _stopRun() {
     this._running = false;
-    // Signal BAS_IO to abort any pending input
-    if (window.BAS_IO && window.BAS_IO._inputResolve) {
-      window.BAS_IO._inputResolve('');
-      window.BAS_IO._inputResolve = null;
+    this._awaitingInput = false;
+    this._runKeyboardVisible = false;
+    if (this._worker) {
+      this._worker.terminate();
+      this._worker = null;
+    }
+    this._syncKeyboardVisibility();
+  }
+
+  _syncKeyboardVisibility() {
+    const el = document.querySelector('#keyboard-container');
+    if (!el) return;
+    const show = this.mode === 'edit' || this._runKeyboardVisible;
+    el.style.display = show ? '' : 'none';
+    el.classList.toggle('run-keyboard', this.mode === 'run');
+
+    const btn = document.querySelector('#btn-kbd');
+    if (btn) {
+      btn.textContent = this._runKeyboardVisible ? 'HIDE KBD' : 'SHOW KBD';
     }
   }
 
-  async _runBas(source) {
-    // Load the Emscripten module lazily on first run
-    if (!this._basModule) {
-      if (typeof createBasModule === 'undefined') {
-        this.console.writeError('WASM interpreter not loaded.\n');
-        return;
-      }
-      this._basModule = await createBasModule(); // eslint-disable-line no-undef
+  _bindEditToolbar() {
+    document.querySelector('#btn-files').addEventListener('click', () => this.browser.show());
+    document.querySelector('#btn-run').addEventListener('click',   () => this._startRun());
+    document.querySelector('#filename').addEventListener('click',  () => this._promptRenameCurrentFile());
+  }
+
+  _promptRenameCurrentFile() {
+    if (this.mode !== 'edit') return;
+
+    const nextName = prompt('Rename program:', this.currentFile);
+    if (nextName === null) return;
+
+    const trimmed = nextName.trim().toUpperCase();
+    if (!trimmed || trimmed === this.currentFile) return;
+    if (listFiles().some(file => file.name === trimmed)) {
+      alert(`A program named ${trimmed} already exists.`);
+      return;
+    }
+    if (!renameFile(this.currentFile, trimmed)) {
+      alert('Rename failed.');
+      return;
     }
 
-    // Wire BAS_IO callbacks
-    const io = window.BAS_IO;
-    io.onOutput = text => {
-      if (!this._running) return;
-      this.console.write(text);
-    };
-    io.onError = text => {
-      this.console.writeError(text);
-    };
-    io.onInputNeeded = () => {
-      // Show the input strip in Run Mode and route keyboard to console
-      this.console.showInput('? ', line => {
-        io.provideInput(line);
-      });
-      // Show minimal keyboard row for text entry
-      document.querySelector('#keyboard-container').style.display = '';
-    };
-
-    // Write the program to the WASM virtual filesystem and run it
-    const Module = this._basModule;
-    const enc    = new TextEncoder();
-    const bytes  = enc.encode(source);
-    Module.FS.writeFile('/program.bas', bytes);
-
-    this._running = true;
-    // bas main() expects argv[1] = filename
-    Module.callMain(['/program.bas']);
+    this.currentFile = trimmed;
+    this._updateFilename();
   }
 }
 

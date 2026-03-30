@@ -4,7 +4,7 @@
   "description": "",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && cp src/bas-worker.js dist/bas-worker.js",
     "build:wasm": "bash scripts/build-wasm.sh",
     "build:all": "npm run build:wasm && npm run build"
   },

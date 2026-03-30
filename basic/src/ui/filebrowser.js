@@ -15,7 +15,7 @@ export class FileBrowser {
         <div class="file-panel">
           <div class="file-panel-header">
             <h2>FILES</h2>
-            <button id="file-close">✕</button>
+            <button id="file-close" class="file-close-btn" aria-label="Close files">✕</button>
           </div>
           <div class="file-panel-actions">
             <button id="file-new">NEW</button>
@@ -74,7 +74,7 @@ export class FileBrowser {
           <div class="file-meta">${f.modified ? new Date(f.modified).toLocaleDateString() : ''}</div>
         </div>
         <div class="file-item-actions">
-          <button class="export-btn" data-name="${escAttr(f.name)}">EXP</button>
+          <button class="export-btn" data-name="${escAttr(f.name)}">EXPORT</button>
           <button class="delete-btn" data-name="${escAttr(f.name)}">DEL</button>
         </div>
       </div>

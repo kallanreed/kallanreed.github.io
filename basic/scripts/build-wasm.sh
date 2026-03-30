@@ -11,7 +11,7 @@ mkdir -p "$DIST_DIR"
 echo "Compiling bas to WASM with Emscripten..."
 
 # Generate token.c from flex source if needed
-if [ ! -f "$BAS_DIR/token.c" ]; then
+if [ ! -f "$BAS_DIR/token.c" ] || [ "$BAS_DIR/token.l" -nt "$BAS_DIR/token.c" ]; then
   echo "Generating token.c from token.l..."
   flex -o "$BAS_DIR/token.c" "$BAS_DIR/token.l"
 fi
@@ -29,14 +29,16 @@ emcc $SOURCES \
   -s WASM=1 \
   -s ASYNCIFY=1 \
   -s ASYNCIFY_IMPORTS='["bas_wasm_read_line"]' \
-  -s EXPORTED_FUNCTIONS='["_main"]' \
+  -s EXPORTED_FUNCTIONS='["_main","_FS_flush"]' \
   -s EXPORTED_RUNTIME_METHODS='["ccall","cwrap","FS","callMain"]' \
   -s ALLOW_MEMORY_GROWTH=1 \
-  -s ENVIRONMENT=web \
+  -s ENVIRONMENT=web,worker \
   -s MODULARIZE=1 \
   -s EXPORT_NAME=createBasModule \
-  -s NO_EXIT_RUNTIME=0 \
+  -s NO_EXIT_RUNTIME=1 \
+  -s INVOKE_RUN=0 \
   --pre-js "$ROOT/src/io-bridge-pre.js" \
+  -sASSERTIONS=1 \
   -O2
 
 echo "WASM build complete: $DIST_DIR/bas.js + $DIST_DIR/bas.wasm"

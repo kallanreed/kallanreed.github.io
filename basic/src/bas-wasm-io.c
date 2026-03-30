@@ -17,6 +17,8 @@
  */
 EM_JS(char*, bas_wasm_read_line, (), {
   return Asyncify.handleSleep(function(wakeUp) {
+    const io = globalThis.BAS_IO;
+
     function deliver(line) {
       var len = lengthBytesUTF8(line) + 1;
       var ptr = _malloc(len);
@@ -24,15 +26,15 @@ EM_JS(char*, bas_wasm_read_line, (), {
       wakeUp(ptr);
     }
 
-    if (typeof BAS_IO !== 'undefined') {
-      if (BAS_IO._pendingInput !== null) {
-        var line = BAS_IO._pendingInput;
-        BAS_IO._pendingInput = null;
+    if (io) {
+      if (io._pendingInput !== null) {
+        var line = io._pendingInput;
+        io._pendingInput = null;
         deliver(line);
       } else {
-        BAS_IO._inputResolve = deliver;
+        io._inputResolve = deliver;
         // Notify the UI that input is needed (shows input strip in Run Mode)
-        if (BAS_IO.onInputNeeded) BAS_IO.onInputNeeded();
+        if (io.onInputNeeded) io.onInputNeeded();
       }
     } else {
       deliver("");

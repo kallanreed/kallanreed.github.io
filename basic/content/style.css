@@ -7,7 +7,7 @@
   --green-dark: #003310;
   --bg:         #000000;
   --toolbar-h:  44px;
-  --keyboard-h: 220px;
+  --keyboard-h: 300px;
   --font:       'Courier New', Courier, monospace;
   --font-size:  15px;
 }
@@ -50,6 +50,12 @@ html, body {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.toolbar .filename.renameable {
+  cursor: pointer;
+  text-decoration: underline dotted;
+  text-underline-offset: 0.18em;
 }
 
 .toolbar button {
@@ -179,15 +185,15 @@ html, body {
   background: #060f06;
   display: flex;
   flex-direction: column;
-  padding: 4px 2px;
-  gap: 3px;
+  padding: 8px 6px calc(8px + env(safe-area-inset-bottom));
+  gap: 6px;
   user-select: none;
   -webkit-user-select: none;
 }
 
 .key-row {
   display: flex;
-  gap: 2px;
+  gap: 4px;
   flex: 1;
 }
 
@@ -200,32 +206,63 @@ html, body {
   border: 1px solid #1a4020;
   color: var(--green);
   font-family: var(--font);
-  font-size: 11px;
-  border-radius: 3px;
+  font-size: 14px;
+  border-radius: 6px;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
   min-width: 0;
   text-align: center;
   line-height: 1.2;
-  padding: 1px 2px;
+  min-height: 42px;
+  padding: 4px 6px;
 }
 .key:active, .key.pressed { background: var(--green-dark); border-color: var(--green); }
 .key.wide   { flex: 2; }
 .key.wider  { flex: 3; }
-.key.keyword { color: #b8ff8a; font-size: 10px; }
+.key.keyword { color: #b8ff8a; font-size: 12px; min-width: 68px; }
 .key.action  { color: #ffffff; background: #0f2a0f; }
 .key.dim     { color: var(--green-dim); }
+.key.nav     { color: var(--green-dim); flex: 0 0 3em; }
+.key.mode-toggle { color: var(--green); background: #0a200a; font-size: 12px; flex: 0 0 3.2em; }
 
 /* Keyword strip scroll container */
 .keyword-strip {
   display: flex;
-  gap: 2px;
+  gap: 4px;
   flex: 1;
   overflow-x: auto;
   scrollbar-width: none;
 }
 .keyword-strip::-webkit-scrollbar { display: none; }
-.keyword-strip .key { flex: 0 0 auto; min-width: 52px; }
+.keyword-strip .key { flex: 0 0 auto; }
+
+#keyboard-container.run-keyboard .keyboard {
+  flex-basis: 244px;
+}
+
+#keyboard-container.run-keyboard .keyword-strip {
+  display: none;
+}
+
+@media (max-width: 480px) {
+  :root {
+    --keyboard-h: 320px;
+  }
+
+  .key {
+    font-size: 13px;
+    min-height: 44px;
+  }
+
+  .key.keyword {
+    font-size: 11px;
+    min-width: 64px;
+  }
+
+  #keyboard-container.run-keyboard .keyboard {
+    flex-basis: 256px;
+  }
+}
 
 /* === FILE BROWSER === */
 .file-overlay {
@@ -261,6 +298,25 @@ html, body {
   font-size: 14px;
   color: var(--green);
   letter-spacing: 2px;
+}
+
+.file-close-btn {
+  background: #081408;
+  border: 1px solid var(--green-dim);
+  color: var(--green);
+  font-family: var(--font);
+  font-size: 14px;
+  line-height: 1;
+  padding: 6px 9px;
+  border-radius: 6px;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.file-close-btn:active {
+  background: var(--green-dark);
+  border-color: var(--green);
 }
 .file-panel-actions {
   display: flex;

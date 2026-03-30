@@ -430,7 +430,8 @@ int FS_opendev(int chn, int infd, int outfd) /*{{{*/
   file[chn]=malloc(sizeof(struct FileStream));
   file[chn]->dev=1;
 #ifdef __EMSCRIPTEN__
-  file[chn]->tty=0;
+  /* Treat stdio as interactive in the web build so INPUT uses the JS line bridge. */
+  file[chn]->tty=(infd==0 && outfd==1);
 #else
   if ((file[chn]->tty=(infd==0 ? isatty(infd) && isatty(outfd) : 0)))
   {

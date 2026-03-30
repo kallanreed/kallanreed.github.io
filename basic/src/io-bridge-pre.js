@@ -40,6 +40,7 @@ var Module = {
     if (BAS_IO.onOutput) BAS_IO.onOutput(text + '\n');
   },
   printErr: function(text) {
+    self.postMessage && self.postMessage({ type: 'error', text: text + '\n' });
     if (BAS_IO.onError) BAS_IO.onError(text + '\n');
   },
 
@@ -57,8 +58,8 @@ var Module = {
     return null;
   },
 
-  // Expose BAS_IO globally for the app
+  // Expose BAS_IO globally — use globalThis so it works in both window and Worker
   onRuntimeInitialized: function() {
-    window.BAS_IO = BAS_IO;
+    globalThis.BAS_IO = BAS_IO;
   }
 };

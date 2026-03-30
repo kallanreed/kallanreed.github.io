@@ -75,12 +75,11 @@ export class Console {
 
     if (text === '\n') {
       const line = this._inputBuffer;
+      const onSubmit = this._onSubmit;
       this._inputBuffer = '';
       this.inputDisplay.textContent = '';
       this.hideInput();
-      // Echo the submitted line to output
-      this.write(line + '\n');
-      if (this._onSubmit) this._onSubmit(line);
+      if (onSubmit) onSubmit(line);
     } else if (text === 'BACKSPACE') {
       this._inputBuffer = this._inputBuffer.slice(0, -1);
       this.inputDisplay.textContent = this._inputBuffer;

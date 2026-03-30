@@ -6,4 +6,5 @@ mk-dummy/content/raw/*
 basic/node_modules/
 basic/.vite/
 basic/bas/*.o
+basic/bas/libbas.a
 basic/bas/bas
