@@ -1,0 +1,40 @@
+export const KAR_BASIC_KEYWORDS = [
+  'AND',
+  'CLS',
+  'DATA',
+  'DIM',
+  'ELSE',
+  'END',
+  'FOR',
+  'GOSUB',
+  'GOTO',
+  'IF',
+  'INPUT',
+  'LET',
+  'NEXT',
+  'NOT',
+  'OR',
+  'PRINT',
+  'REM',
+  'RESTORE',
+  'RETURN',
+  'STEP',
+  'STOP',
+  'THEN',
+  'TO',
+  'WHILE',
+  'WEND',
+];
+
+export const KAR_BASIC_KEYWORD_SET = new Set(KAR_BASIC_KEYWORDS);
+
+export const KAR_BASIC_KEYBOARD_KEYWORDS = [
+  'PRINT',
+  'INPUT',
+  'IF',
+  'THEN',
+  'GOTO',
+  'LET',
+  'END',
+  'CLS',
+];

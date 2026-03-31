@@ -16,22 +16,19 @@ A GW-BASIC/QBasic-flavored interpreter SPA designed for iPhone. Pinnable to home
 
 ## Interpreter Strategy
 
-**Decision: [`bas`](http://www.moria.de/~michael/bas/) by Michael Haardt, compiled to WASM via Emscripten.**
+**Decision: a small in-repo JavaScript interpreter tailored to this app.**
 
-`bas` is a C-based BASIC interpreter with a dedicated GW-BASIC compatibility mode. Emscripten's **Asyncify** feature allows `bas` to block on `INPUT` without freezing the browser thread — it suspends the WASM stack and resumes it when the JS side provides the user's input string.
+The goal is not perfect legacy compatibility. The goal is a clean, predictable, phone-friendly BASIC-like environment that runs entirely in the browser without shipping a third-party runtime.
 
-### I/O Bridge
-- **stdout** → JS callback streams text to the console UI character-by-character (or line-buffered)
-- **stdin** (INPUT) → Asyncify suspends WASM; JS shows the input prompt, user types via custom keyboard, JS resumes WASM with the string
-- **stderr** → displayed in console as error messages
+### Runtime Model
+- **Parser/executor** lives in a dedicated worker so runs do not block the UI thread
+- **stdout** streams to the console UI as plain text
+- **stdin** pauses execution, shows the input strip, and resumes when the user submits a line
+- **state** is recreated for each run so STOP can terminate cleanly by killing the worker
 
 ### Build
-```
-bas/          ← vendored bas-2.5 C source (not a submodule)
-```
-Build command: `npm run build:wasm`  
-Emscripten flags: `-s ASYNCIFY -s EXPORTED_RUNTIME_METHODS=['ccall','cwrap'] -s ALLOW_MEMORY_GROWTH=1 --pre-js src/io-bridge.js`  
-Output: `dist/bas.wasm` + `dist/bas.js` (Emscripten glue) — both checked in.
+- Build command: `npm run build`
+- Output: `dist/bundle.iife.js` plus `dist/runtime-worker.js`
 
 ---
 
@@ -42,12 +39,11 @@ basic/
 ├── index.html              # SPA shell + PWA meta tags (hand-authored, not built)
 ├── manifest.json           # PWA manifest
 ├── dist/                   # built output — checked into git
-│   ├── bundle.js           # JS bundle (Vite)
-│   ├── bas.js              # Emscripten WASM glue
-│   └── bas.wasm            # compiled bas interpreter
+│   ├── bundle.iife.js      # JS bundle (Vite)
+│   └── runtime-worker.js   # worker-hosted interpreter runtime
 ├── src/
 │   ├── main.js             # app entry point, wires all components
-│   ├── io-bridge.js        # Emscripten pre-js: stdout/stdin hooks + Asyncify bridge
+│   ├── runtime-worker.js   # BASIC-like interpreter running off the UI thread
 │   ├── editor/
 │   │   ├── editor.js       # code editor (contenteditable, line numbers, syntax highlight)
 │   │   └── syntax.js       # keyword highlighting rules
@@ -62,7 +58,6 @@ basic/
 ├── content/
 │   ├── style.css           # green-phosphor theme, modal layout
 │   └── icon.png            # PWA icon (512×512)
-├── bas/                    # vendored bas-2.5 C source
 ├── package.json
 ├── vite.config.js
 └── PLAN.md
@@ -209,6 +204,6 @@ A Service Worker is optional for MVP but recommended for offline use.
 
 - Graphics mode: canvas-backed SCREEN, PSET, LINE, CIRCLE
 - Sound: BEEP, PLAY statement via Web Audio API
-- WASM backend (`bas` via Emscripten) for higher GW-BASIC fidelity
+- Expanded language support and compatibility polish
 - Syntax error highlighting in the editor before RUN
 - Program sharing via URL (base64-encoded program in hash)

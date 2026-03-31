@@ -1,53 +1,38 @@
-// Editor component: contenteditable BASIC editor with syntax highlighting,
-// line number display, and auto-increment on Return.
+// Editor component: contenteditable BASIC editor with syntax highlighting.
 // Uses inputmode="none" to suppress the iOS system keyboard.
 
-const KEYWORDS = [
-  'PRINT','INPUT','IF','THEN','ELSE','GOTO','GOSUB','RETURN',
-  'FOR','TO','STEP','NEXT','WHILE','WEND','DIM','LET','REM',
-  'END','STOP','CLS','RUN','LIST','LOAD','SAVE','NEW',
-  'AND','OR','NOT','MOD','INT','ABS','SQR','RND','LEN',
-  'MID$','LEFT$','RIGHT$','STR$','VAL','CHR$','ASC','TAB',
-  'DATA','READ','RESTORE','ON','OPEN','CLOSE','PRINT#','INPUT#',
-  'RENUM',
-];
+import { KAR_BASIC_KEYWORDS } from '../kar-basic/language.mjs';
 
-const KW_PATTERN = new RegExp(`\\b(${KEYWORDS.join('|')})\\b`, 'gi');
+const KW_PATTERN = new RegExp(`\\b(${KAR_BASIC_KEYWORDS.join('|')})\\b`, 'gi');
 
 function escHtml(s) {
   return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
 function highlightLine(line) {
-  // Detect REM line first (no further highlighting inside)
-  const remMatch = line.match(/^(\s*\d*\s*)(REM\b.*)/i);
+  const labelMatch = line.match(/^(\s*)([A-Z_][A-Z0-9_]*:)(\s*)(.*)$/i);
+  let prefix = '';
+  let rest = line;
+  if (labelMatch) {
+    prefix = `${escHtml(labelMatch[1])}<span class="ln">${escHtml(labelMatch[2])}</span>${escHtml(labelMatch[3])}`;
+    rest = labelMatch[4];
+  }
+
+  const remMatch = rest.match(/^(\s*)(REM\b.*)/i);
   if (remMatch) {
-    return escHtml(remMatch[1]) + `<span class="rem">${escHtml(remMatch[2])}</span>`;
+    return prefix + escHtml(remMatch[1]) + `<span class="rem">${escHtml(remMatch[2])}</span>`;
   }
 
-  // Pull out line number prefix
-  const lnMatch = line.match(/^(\s*)(\d+)(\s+)(.*)/);
-  let prefix = '', rest = '';
-  if (lnMatch) {
-    prefix = `${escHtml(lnMatch[1])}<span class="ln">${escHtml(lnMatch[2])}</span>${escHtml(lnMatch[3])}`;
-    rest = lnMatch[4];
-  } else {
-    rest = line;
-  }
-
-  // Highlight strings, then keywords, then numbers in rest
   let result = '';
   let i = 0;
   while (i < rest.length) {
     if (rest[i] === '"') {
-      // String literal
       let j = i + 1;
       while (j < rest.length && rest[j] !== '"') j++;
-      j++; // include closing quote
+      j++;
       result += `<span class="str">${escHtml(rest.slice(i, j))}</span>`;
       i = j;
     } else {
-      // Try keyword match at this position
       const chunk = rest.slice(i);
       KW_PATTERN.lastIndex = 0;
       const km = KW_PATTERN.exec(chunk);
@@ -55,7 +40,6 @@ function highlightLine(line) {
         result += `<span class="kw">${escHtml(km[0])}</span>`;
         i += km[0].length;
       } else if (/\d/.test(rest[i])) {
-        // Number
         const nm = chunk.match(/^\d+(\.\d+)?/);
         result += `<span class="num">${escHtml(nm[0])}</span>`;
         i += nm[0].length;
@@ -114,20 +98,15 @@ export class Editor {
     this._insertAtCursor(text);
   }
 
-  // Insert a character/string at the current cursor position in _source
   _insertAtCursor(text) {
     const { line, col } = this._getCursorPos();
     const lines = this._source.split('\n');
 
     if (text === '\n') {
-      // Auto-increment line number
-      const currentLine = lines[line] || '';
-      const ln = this._nextLineNumber(lines, line);
-      const newLine = ln ? `${ln} ` : '';
-      lines.splice(line + 1, 0, newLine);
+      lines.splice(line + 1, 0, '');
       this._source = lines.join('\n');
       this._renderHighlight();
-      this._setCursorPos(line + 1, newLine.length);
+      this._setCursorPos(line + 1, 0);
     } else if (text === 'BACKSPACE') {
       if (col > 0) {
         lines[line] = lines[line].slice(0, col - 1) + lines[line].slice(col);
@@ -157,22 +136,6 @@ export class Editor {
     }
 
     if (this._onChange) this._onChange(this._source);
-  }
-
-  _nextLineNumber(lines, currentLineIdx) {
-    const cur = lines[currentLineIdx] || '';
-    const curNum = parseInt(cur.match(/^\s*(\d+)/)?.[1] || '0', 10);
-    // Look ahead for next line's number
-    for (let i = currentLineIdx + 1; i < lines.length; i++) {
-      const m = lines[i].match(/^\s*(\d+)/);
-      if (m) {
-        const nextNum = parseInt(m[1], 10);
-        // Insert midpoint if room, else just increment by 10
-        const mid = curNum + Math.floor((nextNum - curNum) / 2);
-        return mid > curNum ? mid : curNum + 10;
-      }
-    }
-    return curNum ? curNum + 10 : 10;
   }
 
   _renderHighlight() {

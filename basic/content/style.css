@@ -231,7 +231,9 @@ html, body {
   gap: 4px;
   flex: 1;
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
+  touch-action: pan-x;
 }
 .keyword-strip::-webkit-scrollbar { display: none; }
 .keyword-strip .key { flex: 0 0 auto; }

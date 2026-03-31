@@ -1,5 +1,5 @@
 // Terminal console component for Run Mode.
-// Streams output from bas, handles INPUT prompt, auto-scrolls.
+// Streams interpreter output, handles INPUT prompt, auto-scrolls.
 
 export class Console {
   constructor(container) {
@@ -32,7 +32,7 @@ export class Console {
     this.hideInput();
   }
 
-  // Append text to output (called for each chunk from bas stdout)
+  // Append text to output
   write(text) {
     const node = document.createTextNode(text);
     this.outputEl.appendChild(node);

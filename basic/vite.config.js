@@ -5,7 +5,7 @@ export default defineConfig({
   root: '.',
   build: {
     outDir: 'dist',
-    emptyOutDir: false, // preserve bas.js + bas.wasm from WASM build step
+    emptyOutDir: true,
     lib: {
       entry: resolve(__dirname, 'src/main.js'),
       name: 'BasicApp',

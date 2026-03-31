@@ -6,18 +6,10 @@ import { FileBrowser } from './ui/filebrowser.js';
 import { saveFile, loadFile, ensureFile, listFiles, renameFile } from './storage/storage.js';
 
 const DEFAULT_NAME   = 'UNTITLED';
-const DEFAULT_SOURCE = '10 PRINT "HELLO, WORLD!"\n';
+const DEFAULT_SOURCE = 'PRINT 42\n';
 const FIBB_NAME      = 'FIBB';
 const FIBB_SOURCE    = [
-  '10 INPUT N',
-  '20 A=0',
-  '30 B=1',
-  '40 FOR I=1 TO N',
-  '50 PRINT A',
-  '60 T=A+B',
-  '70 A=B',
-  '80 B=T',
-  '90 NEXT I',
+  'PRINT 42',
   ''
 ].join('\n');
 
@@ -155,27 +147,34 @@ class App {
       <button id="btn-edit">◀ EDIT</button>
       <span class="filename" id="filename" style="color:var(--green-dim)">RUNNING…</span>
       <button id="btn-kbd">SHOW KBD</button>
-      <button class="danger" id="btn-stop">■ STOP</button>
+      <button class="danger" id="btn-run-state">■ STOP</button>
     `;
     document.querySelector('#btn-edit').addEventListener('click', () => {
       this._stopRun();
       this._enterEditMode();
     });
-    document.querySelector('#btn-stop').addEventListener('click', () => {
-      this._stopRun();
-      document.querySelector('#filename').textContent = 'STOPPED';
+    document.querySelector('#btn-run-state').addEventListener('click', () => {
+      if (this._running) {
+        this._stopRun();
+        this._setRunStatus('STOPPED');
+      } else {
+        this._startRun();
+      }
     });
     document.querySelector('#btn-kbd').addEventListener('click', () => {
       this._runKeyboardVisible = !this._runKeyboardVisible;
       this._syncKeyboardVisibility();
     });
+    this._setRunButtonState(true);
     this._syncKeyboardVisibility();
   }
 
   // ── Interpreter ───────────────────────────────────────────────────────────
   async _startRun() {
     this._saveCurrentFile();
-    this._enterRunMode();
+    if (this.mode !== 'run') {
+      this._enterRunMode();
+    }
     this.console.clear();
 
     const rawSource = this.editor.getSource();
@@ -188,27 +187,26 @@ class App {
       .replace(/[\u201C\u201D\u201E\u201F\u2033\u2036]/g, '"')
       .replace(/[\u2018\u2019\u201A\u201B\u2032\u2035]/g, "'");
 
-    // Fresh worker for every run — isolates C global state, allows clean STOP
+    // Fresh worker for every run — isolates interpreter state, allows clean STOP
     if (this._worker) this._worker.terminate();
-    this._worker = new Worker('./dist/bas-worker.js');
+    this._worker = new Worker('./dist/runtime-worker.js', { type: 'module' });
     this._running = true;
+    this._setRunStatus('RUNNING…');
+    this._setRunButtonState(true);
 
     this._worker.onmessage = (e) => {
       const msg = e.data;
       if (msg.type === 'output') {
         this.console.write(msg.text);
-      } else if (msg.type === 'error') {
-        if (msg.text.includes('stdio streams had content in them that was not flushed')) {
-          return;
-        }
-        this.console.writeError(msg.text);
       } else if (msg.type === 'input-needed') {
         this._awaitingInput = true;
         this._runKeyboardVisible = true;
-        this.console.showInput('? ', line => {
+        this.console.showInput(msg.prompt || '', line => {
           if (this._worker) this._worker.postMessage({ type: 'input', line });
         });
         this._syncKeyboardVisibility();
+      } else if (msg.type === 'error') {
+        this.console.writeError(msg.text);
       } else if (msg.type === 'done') {
         this._running = false;
         this._awaitingInput = false;
@@ -216,8 +214,8 @@ class App {
         this._worker = null;
         const exitCode = msg.exitCode || 0;
         this.console.write(exitCode === 0 ? '\nOk\n' : `\nExited (${exitCode})\n`);
-        const fn = document.querySelector('#filename');
-        if (fn) fn.textContent = exitCode === 0 ? 'DONE' : 'STOPPED';
+        this._setRunStatus(exitCode === 0 ? 'DONE' : 'STOPPED');
+        this._setRunButtonState(false);
         this._syncKeyboardVisibility();
       }
     };
@@ -228,6 +226,8 @@ class App {
       this._awaitingInput = false;
       this._runKeyboardVisible = false;
       this._worker = null;
+      this._setRunStatus('STOPPED');
+      this._setRunButtonState(false);
       this._syncKeyboardVisibility();
     };
 
@@ -242,7 +242,23 @@ class App {
       this._worker.terminate();
       this._worker = null;
     }
+    this._setRunButtonState(false);
     this._syncKeyboardVisibility();
+  }
+
+  _setRunStatus(text) {
+    const filenameEl = document.querySelector('#filename');
+    if (filenameEl && this.mode === 'run') {
+      filenameEl.textContent = text;
+    }
+  }
+
+  _setRunButtonState(isRunning) {
+    const button = document.querySelector('#btn-run-state');
+    if (!button) return;
+    button.textContent = isRunning ? '■ STOP' : '▶ RUN';
+    button.classList.toggle('danger', isRunning);
+    button.classList.toggle('primary', !isRunning);
   }
 
   _syncKeyboardVisibility() {

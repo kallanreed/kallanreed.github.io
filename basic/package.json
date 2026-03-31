@@ -4,9 +4,8 @@
   "description": "",
   "scripts": {
     "dev": "vite",
-    "build": "vite build && cp src/bas-worker.js dist/bas-worker.js",
-    "build:wasm": "bash scripts/build-wasm.sh",
-    "build:all": "npm run build:wasm && npm run build"
+    "build": "vite build && mkdir -p dist/kar-basic && cp src/runtime-worker.js dist/runtime-worker.js && cp src/kar-basic/*.mjs dist/kar-basic/",
+    "test": "node --test test/*.test.mjs"
   },
   "author": "",
   "license": "ISC",
