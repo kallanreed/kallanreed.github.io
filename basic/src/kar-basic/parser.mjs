@@ -321,6 +321,18 @@ class Parser {
     };
   }
 
+  parseBooleanLiteral() {
+    const token = this.matchOneOf(['TRUE', 'FALSE']);
+    if (!token) {
+      throw parserError('Expected a boolean literal', this.peek() ?? this.tokens[this.tokens.length - 1]);
+    }
+    return {
+      type: 'BooleanLiteral',
+      value: token.kind === 'TRUE',
+      location: tokenLocation(token),
+    };
+  }
+
   parseExpression(message = 'Expected an expression') {
     return this.parseOrExpression(message);
   }
@@ -486,6 +498,9 @@ class Parser {
         return this.parseNumberLiteral();
       case 'STRING':
         return this.parseStringLiteral();
+      case 'TRUE':
+      case 'FALSE':
+        return this.parseBooleanLiteral();
       case 'LEFT_PAREN':
         return this.parseParenthesizedExpression();
       case 'RND':
@@ -641,6 +656,8 @@ class Parser {
     return [
       'NUMBER',
       'STRING',
+      'TRUE',
+      'FALSE',
       'LEFT_PAREN',
       'PLUS',
       'MINUS',

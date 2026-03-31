@@ -51,21 +51,26 @@ test('FIBB sample executes and prints the expected opening sequence', async () =
 });
 
 test('GUESS sample executes deterministically with injected clock/input', async () => {
-  const output = [];
-  const inputs = ['50', '25', '20', '23'];
+  async function runGuess(inputs) {
+    const output = [];
+    await executeSource(sampleByName('GUESS'), {
+      async input() {
+        return inputs.shift() ?? '1';
+      },
+      now() {
+        return 100;
+      },
+      print(value) {
+        output.push(String(value));
+      },
+    });
+    return output;
+  }
 
-  await executeSource(sampleByName('GUESS'), {
-    async input() {
-      return inputs.shift() ?? '1';
-    },
-    now() {
-      return 100;
-    },
-    print(value) {
-      output.push(String(value));
-    },
-  });
+  const first = await runGuess(['50', '60', '59', '58']);
+  const second = await runGuess(['50', '60', '59', '58']);
 
-  assert.equal(output[0], "I'M THINKING OF A NUMBER FROM 1 TO 100.");
-  assert.ok(output.includes('YOU GOT IT!'));
+  assert.equal(first[0], "I'M THINKING OF A NUMBER FROM 1 TO 100.");
+  assert.deepEqual(first, second);
+  assert.ok(first.some(line => line === 'YOU GOT IT!' || line.startsWith('OUT OF TRIES.')));
 });

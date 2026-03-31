@@ -138,6 +138,19 @@ test('interprets comparison expressions as numeric truth values', async () => {
   assert.deepEqual(output, ['truetruefalse']);
 });
 
+test('interprets TRUE and FALSE literals directly', async () => {
+  const ast = parse('PRINT TRUE, FALSE\nIF TRUE THEN PRINT 42\n');
+  const output = [];
+
+  await interpret(ast, {
+    print(value) {
+      output.push(value);
+    },
+  });
+
+  assert.deepEqual(output, ['truefalse', '42']);
+});
+
 test('interprets NOT, AND, and OR with expected precedence', async () => {
   const ast = parse('PRINT NOT (1 = 2) AND 2 < 3 OR 3 < 2\n');
   const output = [];

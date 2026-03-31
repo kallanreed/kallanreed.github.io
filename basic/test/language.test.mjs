@@ -8,7 +8,7 @@ import {
 } from '../src/kar-basic/language.mjs';
 
 test('language keyword set contains the parser-visible core keywords', () => {
-  for (const keyword of ['PRINT', 'INPUT', 'IF', 'THEN', 'GOTO', 'VAR', 'END', 'FOR', 'WHILE', 'RND', 'INT', 'SEED']) {
+  for (const keyword of ['PRINT', 'INPUT', 'IF', 'THEN', 'GOTO', 'VAR', 'END', 'FOR', 'WHILE', 'RND', 'INT', 'SEED', 'TRUE', 'FALSE']) {
     assert.equal(KAR_BASIC_KEYWORD_SET.has(keyword), true);
   }
 });

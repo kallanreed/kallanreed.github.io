@@ -171,6 +171,23 @@ test('parses comparison expressions after arithmetic precedence', () => {
   });
 });
 
+test('parses TRUE and FALSE as boolean literals', () => {
+  const ast = parse('PRINT TRUE, FALSE\n');
+
+  assert.deepEqual(ast.body[0].arguments, [
+    {
+      type: 'BooleanLiteral',
+      value: true,
+      location: { line: 1, column: 7 },
+    },
+    {
+      type: 'BooleanLiteral',
+      value: false,
+      location: { line: 1, column: 13 },
+    },
+  ]);
+});
+
 test('parses NOT, AND, and OR with stable precedence', () => {
   const ast = parse('PRINT NOT A = B AND C OR D\n');
   const expression = ast.body[0].arguments[0];

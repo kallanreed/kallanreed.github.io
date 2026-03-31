@@ -53,6 +53,14 @@ test('full pipeline evaluates comparison expressions', async () => {
   ]);
 });
 
+test('full pipeline supports TRUE and FALSE literals', async () => {
+  assert.deepEqual(await runProgram('PRINT TRUE, FALSE\nIF TRUE THEN PRINT 42\n'), [
+    { type: 'output', text: 'truefalse\n' },
+    { type: 'output', text: '42\n' },
+    { type: 'done', exitCode: 0 },
+  ]);
+});
+
 test('full pipeline evaluates logical expressions', async () => {
   assert.deepEqual(await runProgram('PRINT NOT (1 = 2) AND 2 < 3 OR 3 < 2\n'), [
     { type: 'output', text: 'true\n' },

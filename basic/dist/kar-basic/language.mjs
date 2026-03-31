@@ -20,7 +20,9 @@ export const KAR_BASIC_KEYWORDS = [
   'THEN',
   'TIMER',
   'TO',
+  'TRUE',
   'VAR',
+  'FALSE',
   'WHILE',
 ];
 
@@ -39,6 +41,8 @@ export const KAR_BASIC_KEYBOARD_KEYWORDS = [
   'WHILE',
   'GOTO',
   'END',
+  'TRUE',
+  'FALSE',
   'NOT',
   'AND',
   'OR',

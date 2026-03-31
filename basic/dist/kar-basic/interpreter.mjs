@@ -164,6 +164,8 @@ class InterpreterRuntime {
         return expression.value;
       case 'StringLiteral':
         return expression.value;
+      case 'BooleanLiteral':
+        return expression.value;
       case 'VariableReference':
         return this.globalEnvironment.get(expression.name);
       case 'UnaryExpression':
