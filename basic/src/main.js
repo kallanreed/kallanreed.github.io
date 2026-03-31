@@ -4,14 +4,10 @@ import { Keyboard }    from './keyboard/keyboard.js';
 import { Console }     from './console/console.js';
 import { FileBrowser } from './ui/filebrowser.js';
 import { saveFile, loadFile, ensureFile, listFiles, renameFile } from './storage/storage.js';
+import { KAR_BASIC_SAMPLES } from './kar-basic/samples.mjs';
 
 const DEFAULT_NAME   = 'UNTITLED';
 const DEFAULT_SOURCE = 'PRINT 42\n';
-const FIBB_NAME      = 'FIBB';
-const FIBB_SOURCE    = [
-  'PRINT 42',
-  ''
-].join('\n');
 
 class App {
   constructor() {
@@ -57,7 +53,9 @@ class App {
 
   // ── Component wiring ──────────────────────────────────────────────────────
   _initComponents() {
-    ensureFile(FIBB_NAME, FIBB_SOURCE);
+    for (const sample of KAR_BASIC_SAMPLES) {
+      ensureFile(sample.name, sample.source);
+    }
 
     this.editor   = new Editor(document.querySelector('#editor-container'));
     this.console  = new Console(document.querySelector('#console-container'));

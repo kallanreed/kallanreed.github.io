@@ -22,7 +22,7 @@ const SYMBOL_ROWS = [
     { label: '<' }, { label: '>' }, { label: '^' }, { label: '(' }, { label: ')' },
   ],
   [
-    { label: '"' }, { label: "'" }, { label: '$' }, { label: '.' }, { label: ',' },
+    { label: '"' }, { label: "'" }, { label: '_' }, { label: '.' }, { label: ',' },
     { label: ';' }, { label: ':' }, { label: '#' }, { label: '!' }, { label: '?' },
   ],
 ];

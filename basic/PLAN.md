@@ -205,5 +205,30 @@ A Service Worker is optional for MVP but recommended for offline use.
 - Graphics mode: canvas-backed SCREEN, PSET, LINE, CIRCLE
 - Sound: BEEP, PLAY statement via Web Audio API
 - Expanded language support and compatibility polish
+- String-oriented condition helpers now that boolean-only IF/WHILE/NOT/AND/OR are strict
+- Example future candidates: `LEN`, `EMPTY`, string comparison helpers, or explicit boolean-producing string tests
 - Syntax error highlighting in the editor before RUN
 - Program sharing via URL (base64-encoded program in hash)
+
+---
+
+## Current Status
+
+- Runtime: custom in-repo `kar-basic` lexer/parser/interpreter running in a worker
+- Core statements: `PRINT`, `INPUT`, `VAR`, assignment, `IF` / `ELSE IF` / `ELSE`, `WHILE`, `FOR`, `GOTO`, `SEED`
+- Expressions: arithmetic, comparisons, strict booleans, grouping, builtins (`RND`, `INT`, `ABS`, `SIGN`, `CHR`, `TIMER`)
+- Storage/UI: local file list, rename/delete/import/export, custom keyboard, run/edit split, starter sample files
+
+## Remaining Work
+
+- Language ergonomics
+- Add string helpers now that conditions are strict booleans
+- Decide whether to keep `GOTO` as-is or add structured subroutines later (`GOSUB` / `RETURN` vs `SUB`)
+- Consider arrays / indexed storage
+- Expand builtin library beyond current math/random/time set
+
+- Product polish
+- Add sample-aware onboarding/docs inside the app
+- Clean up stale plan text and screenshots that still describe numbered-line BASIC / old keywords
+- Add more sample and regression tests around storage/bootstrap behavior
+- Improve runtime/type error messages now that booleans are first-class
