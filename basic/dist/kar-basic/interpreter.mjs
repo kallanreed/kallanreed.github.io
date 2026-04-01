@@ -55,6 +55,9 @@ class InterpreterRuntime {
       case 'InputStatement':
         await this.executeInputStatement(statement);
         return null;
+      case 'DimStatement':
+        this.executeDimStatement(statement);
+        return null;
       case 'ForStatement':
         return this.executeForStatement(statement);
       case 'GotoStatement':
@@ -80,7 +83,7 @@ class InterpreterRuntime {
   executePrintStatement(statement) {
     const text = statement.arguments
       .map(argument => this.evaluateExpression(argument))
-      .map(value => String(value))
+      .map(value => formatValue(value))
       .join('');
     this.host.print(text);
   }
@@ -110,6 +113,15 @@ class InterpreterRuntime {
     return null;
   }
 
+  executeDimStatement(statement) {
+    const size = this.evaluateArraySize(statement.size, 'DIM size must be a non-negative integer');
+    this.globalEnvironment.declare(
+      statement.target.name,
+      createArrayValue(size),
+      statement.target.location,
+    );
+  }
+
   executeVarStatement(statement) {
     const value = this.evaluateExpression(statement.value);
     this.globalEnvironment.declare(statement.target.name, value, statement.target.location);
@@ -117,6 +129,18 @@ class InterpreterRuntime {
 
   executeAssignmentStatement(statement) {
     const value = this.evaluateExpression(statement.value);
+    if (statement.target.type === 'ArrayAccess') {
+      const index = this.evaluateArrayIndex(statement.target.index);
+      const target = this.evaluateIndexedTarget(statement.target);
+      if (typeof target === 'string') {
+        throw runtimeError(`String indexing is read-only: ${statement.target.target.name}`, statement.target.location);
+      }
+      if (index >= target.elements.length) {
+        throw runtimeError(`Index out of bounds: ${index}`, statement.target.index.location ?? statement.target.location);
+      }
+      target.elements[index] = value;
+      return;
+    }
     this.globalEnvironment.assign(statement.target.name, value, statement.target.location);
   }
 
@@ -168,6 +192,8 @@ class InterpreterRuntime {
         return expression.value;
       case 'VariableReference':
         return this.globalEnvironment.get(expression.name);
+      case 'ArrayAccess':
+        return this.evaluateArrayElement(expression);
       case 'UnaryExpression':
         return this.evaluateUnaryExpression(expression);
       case 'BinaryExpression':
@@ -189,12 +215,22 @@ class InterpreterRuntime {
         return this.host.now();
       case 'INT':
         return Math.floor(this.evaluateNumericExpression(expression.arguments[0], 'INT requires a numeric argument'));
+      case 'LEN':
+        return this.evaluateLengthBuiltin(expression);
       case 'ABS':
         return Math.abs(this.evaluateNumericExpression(expression.arguments[0], 'ABS requires a numeric argument'));
+      case 'ASC':
+        return this.evaluateAscBuiltin(expression);
       case 'SIGN':
         return signOf(this.evaluateNumericExpression(expression.arguments[0], 'SIGN requires a numeric argument'));
+      case 'STR':
+        return formatValue(this.evaluateExpression(expression.arguments[0]));
       case 'CHR':
         return String.fromCharCode(normalizeCharCode(this.evaluateNumericExpression(expression.arguments[0], 'CHR requires a numeric argument')));
+      case 'MID':
+        return this.evaluateMidBuiltin(expression);
+      case 'VAL':
+        return this.evaluateValueBuiltin(expression);
       default:
         throw runtimeError(`Unsupported builtin: ${expression.name}`, expression.location);
     }
@@ -217,6 +253,103 @@ class InterpreterRuntime {
     }
 
     throw runtimeError('RND accepts at most two arguments', expression.location);
+  }
+
+  evaluateLengthBuiltin(expression) {
+    const value = this.evaluateExpression(expression.arguments[0]);
+    if (typeof value === 'string') {
+      return value.length;
+    }
+    if (isArrayValue(value)) {
+      return value.elements.length;
+    }
+    throw runtimeError('LEN requires a string or array argument', expression.location);
+  }
+
+  evaluateAscBuiltin(expression) {
+    const value = this.evaluateExpression(expression.arguments[0]);
+    if (typeof value !== 'string') {
+      throw runtimeError('ASC requires a string argument', expression.location);
+    }
+    if (value.length === 0) {
+      throw runtimeError('ASC requires a non-empty string', expression.location);
+    }
+    return value.charCodeAt(0);
+  }
+
+  evaluateMidBuiltin(expression) {
+    const [sourceExpression, startExpression, lengthExpression] = expression.arguments;
+    const source = this.evaluateExpression(sourceExpression);
+    if (typeof source !== 'string') {
+      throw runtimeError('MID requires a string source', expression.location);
+    }
+    const start = this.evaluateNumericExpression(startExpression, 'MID start must be a non-negative integer');
+    if (!Number.isInteger(start) || start < 0) {
+      throw runtimeError('MID start must be a non-negative integer', startExpression?.location ?? expression.location);
+    }
+    if (lengthExpression === undefined) {
+      return source.slice(start);
+    }
+    const length = this.evaluateNumericExpression(lengthExpression, 'MID length must be a non-negative integer');
+    if (!Number.isInteger(length) || length < 0) {
+      throw runtimeError('MID length must be a non-negative integer', lengthExpression?.location ?? expression.location);
+    }
+    return source.slice(start, start + length);
+  }
+
+  evaluateValueBuiltin(expression) {
+    const value = this.evaluateExpression(expression.arguments[0]);
+    if (typeof value !== 'string') {
+      throw runtimeError('VAL requires a string argument', expression.location);
+    }
+    const trimmed = value.trim();
+    if (trimmed === '') {
+      throw runtimeError('VAL requires a numeric string', expression.location);
+    }
+    const parsed = Number(trimmed);
+    if (!Number.isFinite(parsed)) {
+      throw runtimeError('VAL requires a numeric string', expression.location);
+    }
+    return parsed;
+  }
+
+  evaluateArrayElement(expression) {
+    const target = this.evaluateIndexedTarget(expression);
+    const index = this.evaluateArrayIndex(expression.index);
+    if (typeof target === 'string') {
+      if (index >= target.length) {
+        throw runtimeError(`Index out of bounds: ${index}`, expression.index?.location ?? expression.location);
+      }
+      return target[index];
+    }
+    if (index >= target.elements.length) {
+      throw runtimeError(`Index out of bounds: ${index}`, expression.index?.location ?? expression.location);
+    }
+    return target.elements[index];
+  }
+
+  evaluateIndexedTarget(expression) {
+    const value = this.globalEnvironment.get(expression.target.name);
+    if (typeof value === 'string' || isArrayValue(value)) {
+      return value;
+    }
+    throw runtimeError(`Variable is not indexable: ${expression.target.name}`, expression.target.location);
+  }
+
+  evaluateArrayIndex(expression) {
+    const index = this.evaluateNumericExpression(expression, 'Array index must be a non-negative integer');
+    if (!Number.isInteger(index) || index < 0) {
+      throw runtimeError('Array index must be a non-negative integer', expression?.location);
+    }
+    return index;
+  }
+
+  evaluateArraySize(expression, message) {
+    const size = this.evaluateNumericExpression(expression, message);
+    if (!Number.isInteger(size) || size < 0) {
+      throw runtimeError(message, expression?.location);
+    }
+    return size;
   }
 
   evaluateNumericExpression(expression, message) {
@@ -258,6 +391,8 @@ class InterpreterRuntime {
       case '-':
       case '*':
       case '/':
+      case 'DIV':
+      case 'MOD':
         return this.evaluateArithmeticExpression(expression);
       case '=':
       case '==':
@@ -296,18 +431,46 @@ class InterpreterRuntime {
   }
 
   evaluateArithmeticExpression(expression) {
-    const left = this.evaluateNumericExpression(expression.left, `Operator ${expression.operator} requires numeric operands`);
-    const right = this.evaluateNumericExpression(expression.right, `Operator ${expression.operator} requires numeric operands`);
-
     switch (expression.operator) {
-      case '+':
-        return left + right;
+      case '+': {
+        const left = this.evaluateExpression(expression.left);
+        const right = this.evaluateExpression(expression.right);
+        if (typeof left === 'number' && typeof right === 'number') {
+          return left + right;
+        }
+        if (typeof left === 'string' && typeof right === 'string') {
+          return left + right;
+        }
+        throw runtimeError('Operator + requires numeric operands or string operands', expression.location);
+      }
       case '-':
-        return left - right;
       case '*':
-        return left * right;
       case '/':
-        return left / right;
+      case 'DIV':
+      case 'MOD': {
+        const left = this.evaluateNumericExpression(expression.left, `Operator ${expression.operator} requires numeric operands`);
+        const right = this.evaluateNumericExpression(expression.right, `Operator ${expression.operator} requires numeric operands`);
+        switch (expression.operator) {
+          case '-':
+            return left - right;
+          case '*':
+            return left * right;
+          case '/':
+            return left / right;
+          case 'DIV':
+            if (right === 0) {
+              throw runtimeError('DIV requires a non-zero divisor', expression.location);
+            }
+            return truncateTowardZero(left / right);
+          case 'MOD':
+            if (right === 0) {
+              throw runtimeError('MOD requires a non-zero divisor', expression.location);
+            }
+            return left % right;
+          default:
+            throw runtimeError(`Unsupported arithmetic operator: ${expression.operator}`, expression.location);
+        }
+      }
       default:
         throw runtimeError(`Unsupported arithmetic operator: ${expression.operator}`, expression.location);
     }
@@ -388,6 +551,13 @@ function loopContinues(current, end, step) {
   return step > 0 ? current <= end : current >= end;
 }
 
+function createArrayValue(size) {
+  return {
+    kind: 'array',
+    elements: Array(size).fill(0),
+  };
+}
+
 function buildLabelIndex(statements) {
   const labels = new Map();
 
@@ -458,6 +628,20 @@ function isComparableValue(value) {
   return (typeof value === 'number' && Number.isFinite(value)) || typeof value === 'string';
 }
 
+function isArrayValue(value) {
+  return value !== null
+    && typeof value === 'object'
+    && value.kind === 'array'
+    && Array.isArray(value.elements);
+}
+
+function formatValue(value) {
+  if (isArrayValue(value)) {
+    return `[${value.elements.map(element => formatValue(element)).join(', ')}]`;
+  }
+  return String(value);
+}
+
 function signOf(value) {
   if (value === 0) {
     return 0;
@@ -471,6 +655,10 @@ function normalizeSeed(value) {
 
 function normalizeCharCode(value) {
   return Math.trunc(value) & 0xffff;
+}
+
+function truncateTowardZero(value) {
+  return value < 0 ? Math.ceil(value) : Math.floor(value);
 }
 
 function runtimeError(message, location) {

@@ -74,6 +74,9 @@ class Parser {
       case 'INPUT':
         statement = this.parseInputStatement();
         break;
+      case 'DIM':
+        statement = this.parseDimStatement();
+        break;
       case 'FOR':
         statement = this.parseForStatement();
         break;
@@ -93,7 +96,7 @@ class Parser {
         statement = this.parseSeedStatement();
         break;
       default:
-        if (token.type === 'IDENTIFIER' && this.peek(1)?.kind === 'EQUALS') {
+        if (token.type === 'IDENTIFIER' && this.isAssignmentStart()) {
           statement = this.parseAssignmentStatement();
           break;
         }
@@ -134,6 +137,20 @@ class Parser {
       type: 'InputStatement',
       prompt,
       target,
+      location: tokenLocation(keyword),
+    };
+  }
+
+  parseDimStatement() {
+    const keyword = this.consumeKind('DIM', 'Expected DIM');
+    const target = this.parseVariableReference('Expected array name after DIM');
+    this.consumeKind('LEFT_PAREN', 'Expected ( after array name');
+    const size = this.parseExpression('Expected an array size inside DIM(...)');
+    this.consumeKind('RIGHT_PAREN', 'Expected ) after array size');
+    return {
+      type: 'DimStatement',
+      target,
+      size,
       location: tokenLocation(keyword),
     };
   }
@@ -209,8 +226,8 @@ class Parser {
   }
 
   parseAssignmentStatement() {
-    const target = this.parseVariableReference('Expected variable name');
-    this.consumeKind('EQUALS', 'Expected = after variable name');
+    const target = this.parseAssignmentTarget('Expected assignment target');
+    this.consumeKind('EQUALS', 'Expected = after assignment target');
     const value = this.parseExpression('Expected an expression after =');
     return {
       type: 'AssignmentStatement',
@@ -444,7 +461,7 @@ class Parser {
     let expression = this.parseUnaryExpression(message);
 
     while (true) {
-      const operator = this.matchOneOf(['STAR', 'SLASH']);
+      const operator = this.matchOneOf(['STAR', 'SLASH', 'DIV', 'MOD']);
       if (!operator) {
         return expression;
       }
@@ -474,6 +491,10 @@ class Parser {
       };
     }
 
+    if (token.kind === 'MID') {
+      return this.parseMidExpression();
+    }
+
     if (isBuiltinPrefixFunction(token.kind)) {
       this.index += 1;
       return {
@@ -485,6 +506,23 @@ class Parser {
     }
 
     return this.parsePrimaryExpression(message);
+  }
+
+  parseMidExpression() {
+    const token = this.consumeKind('MID', 'Expected MID');
+    const source = this.parseExpression('Expected a string expression after MID');
+    this.consumeKind('COMMA', 'Expected comma after MID source');
+    const start = this.parseExpression('Expected a start expression after comma');
+    const args = [source, start];
+    if (this.matchKind('COMMA')) {
+      args.push(this.parseExpression('Expected a length expression after comma'));
+    }
+    return {
+      type: 'BuiltinExpression',
+      name: 'MID',
+      arguments: args,
+      location: tokenLocation(token),
+    };
   }
 
   parsePrimaryExpression(message) {
@@ -515,7 +553,7 @@ class Parser {
         };
       default:
         if (token.type === 'IDENTIFIER') {
-          return this.parseVariableReference(message);
+          return this.parseReferenceExpression(message);
         }
         throw parserError(message, token);
     }
@@ -558,6 +596,25 @@ class Parser {
       return this.parseStringLiteral();
     }
     return this.parseVariableReference('Expected a string literal or prompt variable for INPUT prompt');
+  }
+
+  parseReferenceExpression(message = 'Expected a variable name') {
+    return this.parseAssignmentTarget(message);
+  }
+
+  parseAssignmentTarget(message = 'Expected a variable name') {
+    const target = this.parseVariableReference(message);
+    if (!this.matchKind('LEFT_PAREN')) {
+      return target;
+    }
+    const index = this.parseExpression('Expected an array index after (');
+    this.consumeKind('RIGHT_PAREN', 'Expected ) after array index');
+    return {
+      type: 'ArrayAccess',
+      target,
+      index,
+      location: target.location,
+    };
   }
 
   parseVariableReference(message = 'Expected a variable name') {
@@ -664,11 +721,48 @@ class Parser {
       'NOT',
       'INT',
       'ABS',
+      'ASC',
+      'LEN',
+      'MID',
       'SIGN',
+      'STR',
       'CHR',
       'RND',
       'TIMER',
+      'VAL',
     ].includes(token.kind);
+  }
+
+  isAssignmentStart() {
+    if (this.peek()?.type !== 'IDENTIFIER') {
+      return false;
+    }
+
+    if (this.peek(1)?.kind === 'EQUALS') {
+      return true;
+    }
+
+    if (this.peek(1)?.kind !== 'LEFT_PAREN') {
+      return false;
+    }
+
+    let depth = 0;
+    let offset = 1;
+    while (true) {
+      const token = this.peek(offset);
+      if (!token || token.kind === 'EOF' || token.kind === 'NEWLINE') {
+        return false;
+      }
+      if (token.kind === 'LEFT_PAREN') {
+        depth += 1;
+      } else if (token.kind === 'RIGHT_PAREN') {
+        depth -= 1;
+        if (depth === 0) {
+          return this.peek(offset + 1)?.kind === 'EQUALS';
+        }
+      }
+      offset += 1;
+    }
   }
 }
 
@@ -711,7 +805,19 @@ function firstNonNumericLocation(expression) {
     case 'StringLiteral':
       return expression.location;
     case 'BuiltinExpression':
-      if (expression.name === 'CHR') {
+      if (expression.name === 'LEN') {
+        return null;
+      }
+      if (expression.name === 'VAL') {
+        return null;
+      }
+      if (expression.name === 'ASC') {
+        return null;
+      }
+      if (expression.name === 'STR' || expression.name === 'CHR') {
+        return expression.location;
+      }
+      if (expression.name === 'MID') {
         return expression.location;
       }
       return firstNonNumericLocation(expression.arguments?.[0] ?? null);
@@ -724,11 +830,20 @@ function firstNonNumericLocation(expression) {
       return null;
     case 'ParenthesizedExpression':
       return firstNonNumericLocation(expression.expression);
+    case 'ArrayAccess':
+      return null;
     default:
       return null;
   }
 }
 
 function isBuiltinPrefixFunction(kind) {
-  return kind === 'INT' || kind === 'ABS' || kind === 'SIGN' || kind === 'CHR';
+  return kind === 'INT'
+    || kind === 'ABS'
+    || kind === 'ASC'
+    || kind === 'LEN'
+    || kind === 'SIGN'
+    || kind === 'STR'
+    || kind === 'CHR'
+    || kind === 'VAL';
 }

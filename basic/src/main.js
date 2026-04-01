@@ -3,7 +3,7 @@ import { Editor }      from './editor/editor.js';
 import { Keyboard }    from './keyboard/keyboard.js';
 import { Console }     from './console/console.js';
 import { FileBrowser } from './ui/filebrowser.js';
-import { saveFile, loadFile, ensureFile, listFiles, renameFile } from './storage/storage.js';
+import { saveFile, loadFile, initializeFilesOnce, listFiles, renameFile } from './storage/storage.js';
 import { KAR_BASIC_SAMPLES } from './kar-basic/samples.mjs';
 
 const DEFAULT_NAME   = 'UNTITLED';
@@ -53,9 +53,7 @@ class App {
 
   // ── Component wiring ──────────────────────────────────────────────────────
   _initComponents() {
-    for (const sample of KAR_BASIC_SAMPLES) {
-      ensureFile(sample.name, sample.source);
-    }
+    initializeFilesOnce('starter_samples_v1', KAR_BASIC_SAMPLES);
 
     this.editor   = new Editor(document.querySelector('#editor-container'));
     this.console  = new Console(document.querySelector('#console-container'));

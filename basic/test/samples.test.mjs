@@ -35,6 +35,17 @@ test('HELLO sample executes end-to-end', async () => {
   assert.equal(output[0], 'HELLO, WORLD!');
   assert.ok(output.includes("LET'S COUNT TO 3"));
   assert.ok(output.includes('HELLO, KYLE'));
+  assert.ok(output.includes('FIRST LETTER: K'));
+  assert.ok(output.includes('NAME LENGTH: 4'));
+  assert.ok(output.includes('STR 42 = 42'));
+  assert.ok(output.includes('VAL "12.5" = 12.5'));
+  assert.ok(output.includes('ASC "A" = 65'));
+  assert.ok(output.includes('MID "HELLO", 1, 3 = ELL'));
+  assert.ok(output.includes('MID "HELLO", 1 = ELLO'));
+  assert.ok(output.includes('7 DIV 2 = 3'));
+  assert.ok(output.includes('7 MOD 4 = 3'));
+  assert.ok(output.includes('SCORES: [10, 20, 0]'));
+  assert.ok(output.includes('TOP SCORE: 20'));
   assert.ok(output.some(line => line.startsWith('SEEDED RND: ')));
 });
 

@@ -1,6 +1,7 @@
 // Storage module: localStorage CRUD for .bas programs
 const STORAGE_PREFIX = 'basic_file_';
 const INDEX_KEY = 'basic_file_index';
+const INIT_PREFIX = 'basic_init_';
 
 function getIndex() {
   try { return JSON.parse(localStorage.getItem(INDEX_KEY) || '[]'); }
@@ -38,6 +39,19 @@ export function saveFile(name, source) {
 export function ensureFile(name, source) {
   if (loadFile(name) !== null) return false;
   saveFile(name, source);
+  return true;
+}
+
+export function initializeFilesOnce(marker, files) {
+  const key = INIT_PREFIX + marker;
+  if (localStorage.getItem(key) === '1') {
+    return false;
+  }
+
+  for (const file of files) {
+    saveFile(file.name, file.source);
+  }
+  localStorage.setItem(key, '1');
   return true;
 }
 

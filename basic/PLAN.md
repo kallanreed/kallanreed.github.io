@@ -1,12 +1,12 @@
 # BASIC Applet — Design Plan
 
-A GW-BASIC/QBasic-flavored interpreter SPA designed for iPhone. Pinnable to home screen, DOS retro green-phosphor aesthetic, custom on-screen keyboard, and localStorage-backed file management.
+A lightweight BASIC-like interpreter SPA designed for iPhone. Pinnable to home screen, DOS retro green-phosphor aesthetic, custom on-screen keyboard, and localStorage-backed file management.
 
 ---
 
 ## Goals
 
-- Run GW-BASIC-flavored programs entirely client-side in the browser
+- Run BASIC-like programs entirely client-side in the browser
 - iPhone-friendly: pinnable PWA, custom keyboard (no system keyboard), legible terminal output
 - DOS green-phosphor aesthetic
 - Save/load multiple named programs via localStorage; import/export to/from device files
@@ -19,6 +19,9 @@ A GW-BASIC/QBasic-flavored interpreter SPA designed for iPhone. Pinnable to home
 **Decision: a small in-repo JavaScript interpreter tailored to this app.**
 
 The goal is not perfect legacy compatibility. The goal is a clean, predictable, phone-friendly BASIC-like environment that runs entirely in the browser without shipping a third-party runtime.
+
+Language reference:
+- [`GRAMMAR.md`](/Users/kylereed/project/website/basic/GRAMMAR.md) is the authoritative EBNF-style grammar and should be kept in sync with parser/runtime changes.
 
 ### Runtime Model
 - **Parser/executor** lives in a dedicated worker so runs do not block the UI thread
@@ -45,7 +48,7 @@ basic/
 │   ├── main.js             # app entry point, wires all components
 │   ├── runtime-worker.js   # BASIC-like interpreter running off the UI thread
 │   ├── editor/
-│   │   ├── editor.js       # code editor (contenteditable, line numbers, syntax highlight)
+│   │   ├── editor.js       # code editor (contenteditable, syntax highlight)
 │   │   └── syntax.js       # keyword highlighting rules
 │   ├── keyboard/
 │   │   └── keyboard.js     # custom on-screen keyboard (suppresses iOS system keyboard)
@@ -74,16 +77,17 @@ The app is **modal**: Edit Mode and Run Mode are full-screen and mutually exclus
 ┌─────────────────────────────────┐
 │  [≡ Files]  UNTITLED.BAS [▶ RUN]│  ← toolbar
 ├─────────────────────────────────┤
-│  10 PRINT "HELLO, WORLD"        │
-│  20 INPUT "NAME? "; N$          │  ← editor (full height above keyboard,
-│  30 PRINT "HI "; N$             │     scrollable, line numbers,
-│  40 GOTO 10                     │     syntax highlight)
+│  PRINT "HELLO, WORLD!"          │
+│  VAR COUNT = 0                  │  ← editor (full height above keyboard,
+│  WHILE COUNT < 3                │     scrollable, syntax highlight)
+│    PRINT COUNT                  │
+│    COUNT = COUNT + 1            │
 │  _                              │
 │                                 │
 │                                 │
 ├─────────────────────────────────┤
-│  [PRINT][INPUT][FOR ][IF  ][→ ] │
-│  [GOTO ][GOSUB][NEXT][THEN][← ] │  ← custom keyboard (fixed at bottom)
+│  [PRINT][INPUT][VAR ][IF  ][→ ] │
+│  [FOR  ][WHILE][GOTO][END ][← ] │  ← custom keyboard (fixed at bottom)
 │  [ 1 ][ 2 ][ 3 ][ + ][ - ][ = ]│
 │  [ 4 ][ 5 ][ 6 ][ * ][ / ][ ( ]│
 │  [ 7 ][ 8 ][ 9 ][ 0 ][ " ][ ) ]│
@@ -122,24 +126,22 @@ The app is **modal**: Edit Mode and Run Mode are full-screen and mutually exclus
 ## Custom Keyboard Design
 
 Three key rows:
-1. **Keyword strip** (swipeable/paginated): `PRINT`, `INPUT`, `FOR`, `NEXT`, `IF`, `THEN`, `ELSE`, `GOTO`, `GOSUB`, `RETURN`, `DIM`, `LET`, `REM`, `END`, `CLS`, `RUN`, `LIST`
-2. **Digits + operators**: `0–9`, `+`, `-`, `*`, `/`, `=`, `<`, `>`, `(`, `)`, `,`, `;`, `:`, `"`, `$`
+1. **Keyword strip** (swipeable): `PRINT`, `INPUT`, `VAR`, `DIM`, `END`, `IF`, `THEN`, `ELSE`, `FOR`, `TO`, `STEP`, `WHILE`, `GOTO`, `TRUE`, `FALSE`, `NOT`, `AND`, `OR`, `DIV`, `MOD`, `ABS`, `ASC`, `INT`, `LEN`, `MID`, `SIGN`, `CHR`, `STR`, `VAL`, `RND`, `SEED`, `TIMER`
+2. **Digits + operators**: `0–9`, `+`, `-`, `*`, `/`, `=`, `<`, `>`, `(`, `)`, `,`, `;`, `:`, `"`, `_`
 3. **Control row**: `DEL`, `Space`, `Return`, cursor left/right for navigation within a line
 
 Tapping a keyword inserts the keyword text followed by a space. Cursor keys move within the current editor line.
-
-Pressing Return in the editor auto-inserts the next line number, incremented by 10 (e.g., after `10 ...`, the next line starts with `20 `). `RENUM` is a stretch-goal command to renumber all lines and rewrite `GOTO`/`GOSUB` targets consistently.
 
 ---
 
 ## Execution Model
 
-- User edits program in the editor pane (no line-number auto-insert; user types `10 PRINT "HI"` manually)
+- User edits program in the editor pane using label-based or structured code (no line numbers)
 - Tap **RUN**: editor becomes read-only, console clears, interpreter runs
 - `PRINT` output streams to console
 - `INPUT` pauses execution, shows a prompt in console, accepts a line via the custom keyboard, resumes
 - **STOP** button appears during execution; terminates the program
-- Runtime errors display in the console with line number (e.g., `?SYNTAX ERROR IN 20`)
+- Runtime errors display in the console with line/column information
 
 ---
 
@@ -206,7 +208,7 @@ A Service Worker is optional for MVP but recommended for offline use.
 - Sound: BEEP, PLAY statement via Web Audio API
 - Expanded language support and compatibility polish
 - String-oriented condition helpers now that boolean-only IF/WHILE/NOT/AND/OR are strict
-- Example future candidates: `LEN`, `EMPTY`, string comparison helpers, or explicit boolean-producing string tests
+- Example future candidates: `TRIM`, `UPPER`, `LOWER`, `FIND`, `REPLACE`, or explicit boolean-producing string tests
 - Syntax error highlighting in the editor before RUN
 - Program sharing via URL (base64-encoded program in hash)
 
@@ -215,8 +217,8 @@ A Service Worker is optional for MVP but recommended for offline use.
 ## Current Status
 
 - Runtime: custom in-repo `kar-basic` lexer/parser/interpreter running in a worker
-- Core statements: `PRINT`, `INPUT`, `VAR`, assignment, `IF` / `ELSE IF` / `ELSE`, `WHILE`, `FOR`, `GOTO`, `SEED`
-- Expressions: arithmetic, comparisons, strict booleans, grouping, builtins (`RND`, `INT`, `ABS`, `SIGN`, `CHR`, `TIMER`)
+- Core statements: `PRINT`, `INPUT`, `VAR`, `DIM`, assignment, `IF` / `ELSE IF` / `ELSE`, `WHILE`, `FOR`, `GOTO`, `SEED`
+- Expressions: arithmetic, comparisons, strict booleans, grouping, indexing, builtins (`RND`, `INT`, `ABS`, `ASC`, `LEN`, `MID`, `SIGN`, `STR`, `VAL`, `CHR`, `TIMER`)
 - Storage/UI: local file list, rename/delete/import/export, custom keyboard, run/edit split, starter sample files
 
 ## Remaining Work
@@ -224,11 +226,12 @@ A Service Worker is optional for MVP but recommended for offline use.
 - Language ergonomics
 - Add string helpers now that conditions are strict booleans
 - Decide whether to keep `GOTO` as-is or add structured subroutines later (`GOSUB` / `RETURN` vs `SUB`)
-- Consider arrays / indexed storage
+- Consider a separate dynamic `LIST` type later, distinct from fixed-size `DIM` arrays
 - Expand builtin library beyond current math/random/time set
+- Keep [`GRAMMAR.md`](/Users/kylereed/project/website/basic/GRAMMAR.md) aligned with language changes
 
 - Product polish
 - Add sample-aware onboarding/docs inside the app
-- Clean up stale plan text and screenshots that still describe numbered-line BASIC / old keywords
+- Keep the plan text and screenshots aligned with the current label-based language and keyboard surface
 - Add more sample and regression tests around storage/bootstrap behavior
 - Improve runtime/type error messages now that booleans are first-class

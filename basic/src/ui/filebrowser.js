@@ -38,8 +38,8 @@ export class FileBrowser {
       const name = prompt('Program name:');
       if (!name) return;
       const upper = name.toUpperCase();
-      saveFile(upper, '10 ');
-      this.onOpen(upper, '10 ');
+      saveFile(upper, '');
+      this.onOpen(upper, '');
       this.hide();
     });
 

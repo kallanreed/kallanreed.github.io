@@ -46,6 +46,25 @@ test('full pipeline evaluates arithmetic expressions with precedence', async () 
   ]);
 });
 
+test('full pipeline supports DIV and MOD infix operators', async () => {
+  assert.deepEqual(await runProgram('PRINT 7 MOD 4, 7 DIV 2, -7 DIV 2\n'), [
+    { type: 'output', text: '33-3\n' },
+    { type: 'done', exitCode: 0 },
+  ]);
+});
+
+test('full pipeline surfaces zero divisors in DIV and MOD', async () => {
+  assert.deepEqual(await runProgram('PRINT 1 DIV 0\n'), [
+    { type: 'error', text: 'DIV requires a non-zero divisor at 1:9\n' },
+    { type: 'done', exitCode: 1 },
+  ]);
+
+  assert.deepEqual(await runProgram('PRINT 1 MOD 0\n'), [
+    { type: 'error', text: 'MOD requires a non-zero divisor at 1:9\n' },
+    { type: 'done', exitCode: 1 },
+  ]);
+});
+
 test('full pipeline evaluates comparison expressions', async () => {
   assert.deepEqual(await runProgram('PRINT 1 < 2, 2 = 2, 3 <> 3\n'), [
     { type: 'output', text: 'truetruefalse\n' },
@@ -80,6 +99,14 @@ test('full pipeline supports INPUT and follow-up PRINT', async () => {
   );
 });
 
+test('full pipeline supports DIM arrays, indexed access, and whole-array PRINT', async () => {
+  assert.deepEqual(await runProgram('DIM SCORES(3)\nSCORES(0) = 10\nSCORES(1) = 20\nPRINT SCORES(1)\nPRINT SCORES\n'), [
+    { type: 'output', text: '20\n' },
+    { type: 'output', text: '[10, 20, 0]\n' },
+    { type: 'done', exitCode: 0 },
+  ]);
+});
+
 test('full pipeline surfaces parser errors as error messages', async () => {
   assert.deepEqual(await runProgram('PRINT =\n'), [
     { type: 'error', text: 'Expected an expression after PRINT at 1:7\n' },
@@ -112,8 +139,16 @@ test('full pipeline surfaces expression parser errors as error messages', async 
 
 test('full pipeline surfaces numeric runtime errors in expressions', async () => {
   assert.deepEqual(await runProgram('PRINT "HELLO"+1\n'), [
-    { type: 'error', text: 'Operator + requires numeric operands at 1:7\n' },
+    { type: 'error', text: 'Operator + requires numeric operands or string operands at 1:14\n' },
     { type: 'done', exitCode: 1 },
+  ]);
+});
+
+test('full pipeline supports string concatenation and string indexing', async () => {
+  assert.deepEqual(await runProgram('VAR NAME = "KYLE"\nPRINT "HI, " + NAME + "!"\nPRINT NAME(1)\n'), [
+    { type: 'output', text: 'HI, KYLE!\n' },
+    { type: 'output', text: 'Y\n' },
+    { type: 'done', exitCode: 0 },
   ]);
 });
 
@@ -171,6 +206,65 @@ test('full pipeline supports builtin expressions and SEED', async () => {
   assert.equal(messages[2].type, 'output');
   assert.equal(messages[1].text, messages[2].text);
   assert.deepEqual(messages[3], { type: 'done', exitCode: 0 });
+});
+
+test('full pipeline supports LEN for strings and arrays', async () => {
+  assert.deepEqual(await runProgram('DIM SCORES(3)\nPRINT LEN "HELLO", LEN SCORES\n'), [
+    { type: 'output', text: '53\n' },
+    { type: 'done', exitCode: 0 },
+  ]);
+});
+
+test('full pipeline supports STR for runtime string building', async () => {
+  assert.deepEqual(await runProgram('VAR COUNT = 42\nPRINT "COUNT=" + STR COUNT\n'), [
+    { type: 'output', text: 'COUNT=42\n' },
+    { type: 'done', exitCode: 0 },
+  ]);
+});
+
+test('full pipeline supports VAL for parsing numeric strings', async () => {
+  assert.deepEqual(await runProgram('PRINT VAL "1", VAL "2.5"\n'), [
+    { type: 'output', text: '12.5\n' },
+    { type: 'done', exitCode: 0 },
+  ]);
+});
+
+test('full pipeline supports ASC and MID', async () => {
+  assert.deepEqual(await runProgram('PRINT ASC "A", MID "HELLO", 1, 3, MID "12345", 1\n'), [
+    { type: 'output', text: '65ELL2345\n' },
+    { type: 'done', exitCode: 0 },
+  ]);
+});
+
+test('full pipeline surfaces invalid LEN arguments', async () => {
+  assert.deepEqual(await runProgram('PRINT LEN TRUE\n'), [
+    { type: 'error', text: 'LEN requires a string or array argument at 1:7\n' },
+    { type: 'done', exitCode: 1 },
+  ]);
+});
+
+test('full pipeline surfaces invalid VAL arguments', async () => {
+  assert.deepEqual(await runProgram('PRINT VAL 1\n'), [
+    { type: 'error', text: 'VAL requires a string argument at 1:7\n' },
+    { type: 'done', exitCode: 1 },
+  ]);
+
+  assert.deepEqual(await runProgram('PRINT VAL "NOPE"\n'), [
+    { type: 'error', text: 'VAL requires a numeric string at 1:7\n' },
+    { type: 'done', exitCode: 1 },
+  ]);
+});
+
+test('full pipeline surfaces invalid ASC and MID arguments', async () => {
+  assert.deepEqual(await runProgram('PRINT ASC ""\n'), [
+    { type: 'error', text: 'ASC requires a non-empty string at 1:7\n' },
+    { type: 'done', exitCode: 1 },
+  ]);
+
+  assert.deepEqual(await runProgram('PRINT MID 1, 0, 1\n'), [
+    { type: 'error', text: 'MID requires a string source at 1:7\n' },
+    { type: 'done', exitCode: 1 },
+  ]);
 });
 
 test('full pipeline supports RND max and min/max forms', async () => {
@@ -235,6 +329,28 @@ test('full pipeline surfaces duplicate VAR declarations as runtime errors', asyn
 test('full pipeline surfaces assignment to undeclared variables as runtime errors', async () => {
   assert.deepEqual(await runProgram('X = 1\n'), [
     { type: 'error', text: 'Unknown variable: X at 1:1\n' },
+    { type: 'done', exitCode: 1 },
+  ]);
+});
+
+test('full pipeline surfaces array runtime errors', async () => {
+  assert.deepEqual(await runProgram('VAR X = 10\nPRINT X(0)\n'), [
+    { type: 'error', text: 'Variable is not indexable: X at 2:7\n' },
+    { type: 'done', exitCode: 1 },
+  ]);
+
+  assert.deepEqual(await runProgram('DIM X(2)\nX(2) = 99\n'), [
+    { type: 'error', text: 'Index out of bounds: 2 at 2:3\n' },
+    { type: 'done', exitCode: 1 },
+  ]);
+
+  assert.deepEqual(await runProgram('VAR NAME = "KYLE"\nNAME(0) = "M"\n'), [
+    { type: 'error', text: 'String indexing is read-only: NAME at 2:1\n' },
+    { type: 'done', exitCode: 1 },
+  ]);
+
+  assert.deepEqual(await runProgram('VAR NAME = "KYLE"\nPRINT NAME(4)\n'), [
+    { type: 'error', text: 'Index out of bounds: 4 at 2:12\n' },
     { type: 'done', exitCode: 1 },
   ]);
 });

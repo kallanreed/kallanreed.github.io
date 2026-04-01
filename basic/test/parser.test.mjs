@@ -96,6 +96,16 @@ test('parses additive and multiplicative precedence correctly', () => {
   });
 });
 
+test('parses DIV and MOD at multiplicative precedence', () => {
+  const ast = parse('PRINT 2+7 MOD 3*4 DIV 2\n');
+  const expression = ast.body[0].arguments[0];
+
+  assert.equal(expression.type, 'BinaryExpression');
+  assert.equal(expression.operator, '+');
+  assert.equal(expression.right.type, 'BinaryExpression');
+  assert.equal(expression.right.operator, 'DIV');
+});
+
 test('parses parenthesized and unary expressions', () => {
   const ast = parse('PRINT -(1+2)\n');
 
@@ -259,6 +269,73 @@ test('parses INPUT with an identifier prompt and target', () => {
       location: { line: 1, column: 14 },
     },
     location: { line: 1, column: 1 },
+  });
+});
+
+test('parses DIM declarations with a computed size expression', () => {
+  const ast = parse('DIM SCORES(1+2)\n');
+
+  assert.deepEqual(ast.body[0], {
+    type: 'DimStatement',
+    target: {
+      type: 'VariableReference',
+      name: 'SCORES',
+      location: { line: 1, column: 5 },
+    },
+    size: {
+      type: 'BinaryExpression',
+      operator: '+',
+      left: {
+        type: 'NumberLiteral',
+        raw: '1',
+        value: 1,
+        location: { line: 1, column: 12 },
+      },
+      right: {
+        type: 'NumberLiteral',
+        raw: '2',
+        value: 2,
+        location: { line: 1, column: 14 },
+      },
+      location: { line: 1, column: 13 },
+    },
+    location: { line: 1, column: 1 },
+  });
+});
+
+test('parses array reads in expressions and indexed assignment targets', () => {
+  const ast = parse('PRINT SCORES(0)\nSCORES(1) = 42\n');
+
+  assert.deepEqual(ast.body[0].arguments[0], {
+    type: 'ArrayAccess',
+    target: {
+      type: 'VariableReference',
+      name: 'SCORES',
+      location: { line: 1, column: 7 },
+    },
+    index: {
+      type: 'NumberLiteral',
+      raw: '0',
+      value: 0,
+      location: { line: 1, column: 14 },
+    },
+    location: { line: 1, column: 7 },
+  });
+
+  assert.deepEqual(ast.body[1].target, {
+    type: 'ArrayAccess',
+    target: {
+      type: 'VariableReference',
+      name: 'SCORES',
+      location: { line: 2, column: 1 },
+    },
+    index: {
+      type: 'NumberLiteral',
+      raw: '1',
+      value: 1,
+      location: { line: 2, column: 8 },
+    },
+    location: { line: 2, column: 1 },
   });
 });
 
@@ -508,19 +585,31 @@ test('parses WHILE blocks with nested statements', () => {
 });
 
 test('parses builtin expressions without call parentheses', () => {
-  const ast = parse('PRINT ABS -2, INT 3.9, SIGN -5, CHR 65, RND, TIMER\n');
+  const ast = parse('PRINT ABS -2, INT 3.9, LEN "ABC", ASC "A", SIGN -5, STR 42, VAL "42", CHR 65, MID "HELLO", 1, 3, RND, TIMER\n');
   const args = ast.body[0].arguments;
 
   assert.equal(args[0].type, 'BuiltinExpression');
   assert.equal(args[0].name, 'ABS');
   assert.equal(args[0].arguments.length, 1);
   assert.equal(args[1].name, 'INT');
-  assert.equal(args[2].name, 'SIGN');
-  assert.equal(args[3].name, 'CHR');
-  assert.equal(args[4].name, 'RND');
-  assert.deepEqual(args[4].arguments, []);
-  assert.equal(args[5].name, 'TIMER');
-  assert.deepEqual(args[5].arguments, []);
+  assert.equal(args[2].name, 'LEN');
+  assert.equal(args[3].name, 'ASC');
+  assert.equal(args[4].name, 'SIGN');
+  assert.equal(args[5].name, 'STR');
+  assert.equal(args[6].name, 'VAL');
+  assert.equal(args[7].name, 'CHR');
+  assert.equal(args[8].name, 'MID');
+  assert.deepEqual(args[8].arguments.map(argument => argument.type), ['StringLiteral', 'NumberLiteral', 'NumberLiteral']);
+  assert.equal(args[9].name, 'RND');
+  assert.deepEqual(args[9].arguments, []);
+  assert.equal(args[10].name, 'TIMER');
+  assert.deepEqual(args[10].arguments, []);
+});
+
+test('parses MID with two arguments as a builtin expression', () => {
+  const ast = parse('PRINT MID "12345", 1\n');
+  assert.equal(ast.body[0].arguments[0].name, 'MID');
+  assert.deepEqual(ast.body[0].arguments[0].arguments.map(argument => argument.type), ['StringLiteral', 'NumberLiteral']);
 });
 
 test('parses SEED as a statement with a numeric expression', () => {

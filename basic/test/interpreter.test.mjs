@@ -36,6 +36,32 @@ test('interprets INPUT followed by PRINT using the assigned variable', async () 
   assert.deepEqual(output, ['N=42']);
 });
 
+test('interprets DIM, array assignment, indexed reads, and whole-array PRINT', async () => {
+  const ast = parse('DIM SCORES(3)\nSCORES(0) = 10\nSCORES(1) = 20\nPRINT SCORES(1)\nPRINT SCORES\n');
+  const output = [];
+
+  await interpret(ast, {
+    print(value) {
+      output.push(value);
+    },
+  });
+
+  assert.deepEqual(output, ['20', '[10, 20, 0]']);
+});
+
+test('interprets string indexing as read-only character access', async () => {
+  const ast = parse('VAR NAME = "KYLE"\nPRINT NAME(0), NAME(3)\n');
+  const output = [];
+
+  await interpret(ast, {
+    print(value) {
+      output.push(value);
+    },
+  });
+
+  assert.deepEqual(output, ['KE']);
+});
+
 test('interprets arithmetic expressions with precedence and grouping', async () => {
   const ast = parse('PRINT 1+2*3, (8-2)/3\n');
   const output = [];
@@ -47,6 +73,42 @@ test('interprets arithmetic expressions with precedence and grouping', async () 
   });
 
   assert.deepEqual(output, ['72']);
+});
+
+test('interprets DIV and MOD as infix integer operators', async () => {
+  const ast = parse('PRINT 7 MOD 4, 7 DIV 2, -7 DIV 2\n');
+  const output = [];
+
+  await interpret(ast, {
+    print(value) {
+      output.push(value);
+    },
+  });
+
+  assert.deepEqual(output, ['33-3']);
+});
+
+test('rejects zero divisors in DIV and MOD', async () => {
+  const divAst = parse('PRINT 1 DIV 0\n');
+  const modAst = parse('PRINT 1 MOD 0\n');
+
+  await assert.rejects(
+    () => interpret(divAst),
+    error => {
+      assert.equal(error.name, 'RuntimeError');
+      assert.match(error.message, /DIV requires a non-zero divisor at 1:9/);
+      return true;
+    },
+  );
+
+  await assert.rejects(
+    () => interpret(modAst),
+    error => {
+      assert.equal(error.name, 'RuntimeError');
+      assert.match(error.message, /MOD requires a non-zero divisor at 1:9/);
+      return true;
+    },
+  );
 });
 
 test('interprets unary minus on literals and variables', async () => {
@@ -119,7 +181,102 @@ test('rejects numeric operators with string operands at runtime', async () => {
     () => interpret(ast),
     error => {
       assert.equal(error.name, 'RuntimeError');
-      assert.match(error.message, /Operator \+ requires numeric operands at 1:7/);
+      assert.match(error.message, /Operator \+ requires numeric operands or string operands at 1:14/);
+      return true;
+    },
+  );
+});
+
+test('interprets string concatenation with +', async () => {
+  const ast = parse('VAR NAME = "KYLE"\nPRINT "HI, " + NAME + "!"\n');
+  const output = [];
+
+  await interpret(ast, {
+    print(value) {
+      output.push(value);
+    },
+  });
+
+  assert.deepEqual(output, ['HI, KYLE!']);
+});
+
+test('rejects indexing on non-indexable variables', async () => {
+  const ast = parse('VAR X = 10\nPRINT X(0)\n');
+
+  await assert.rejects(
+    () => interpret(ast),
+    error => {
+      assert.equal(error.name, 'RuntimeError');
+      assert.match(error.message, /Variable is not indexable: X at 2:7/);
+      return true;
+    },
+  );
+});
+
+test('rejects out-of-bounds array writes and reads', async () => {
+  const writeAst = parse('DIM X(2)\nX(2) = 99\n');
+  const readAst = parse('DIM X(2)\nPRINT X(2)\n');
+
+  await assert.rejects(
+    () => interpret(writeAst),
+    error => {
+      assert.equal(error.name, 'RuntimeError');
+      assert.match(error.message, /Index out of bounds: 2 at 2:3/);
+      return true;
+    },
+  );
+
+  await assert.rejects(
+    () => interpret(readAst),
+    error => {
+      assert.equal(error.name, 'RuntimeError');
+      assert.match(error.message, /Index out of bounds: 2 at 2:9/);
+      return true;
+    },
+  );
+});
+
+test('rejects string index writes and string index bounds errors', async () => {
+  const writeAst = parse('VAR NAME = "KYLE"\nNAME(0) = "M"\n');
+  const readAst = parse('VAR NAME = "KYLE"\nPRINT NAME(4)\n');
+
+  await assert.rejects(
+    () => interpret(writeAst),
+    error => {
+      assert.equal(error.name, 'RuntimeError');
+      assert.match(error.message, /String indexing is read-only: NAME at 2:1/);
+      return true;
+    },
+  );
+
+  await assert.rejects(
+    () => interpret(readAst),
+    error => {
+      assert.equal(error.name, 'RuntimeError');
+      assert.match(error.message, /Index out of bounds: 4 at 2:12/);
+      return true;
+    },
+  );
+});
+
+test('rejects invalid DIM sizes and array indexes', async () => {
+  const negativeSizeAst = parse('DIM X(-1)\n');
+  const fractionalIndexAst = parse('DIM X(3)\nPRINT X(1.5)\n');
+
+  await assert.rejects(
+    () => interpret(negativeSizeAst),
+    error => {
+      assert.equal(error.name, 'RuntimeError');
+      assert.match(error.message, /DIM size must be a non-negative integer at 1:7/);
+      return true;
+    },
+  );
+
+  await assert.rejects(
+    () => interpret(fractionalIndexAst),
+    error => {
+      assert.equal(error.name, 'RuntimeError');
+      assert.match(error.message, /Array index must be a non-negative integer at 2:9/);
       return true;
     },
   );
@@ -241,6 +398,137 @@ test('interprets builtin expressions and seeded random sequences', async () => {
 
   assert.deepEqual(output[0], '32-1A');
   assert.equal(output[1], output[2]);
+});
+
+test('interprets LEN for strings and arrays', async () => {
+  const ast = parse('DIM SCORES(3)\nPRINT LEN "HELLO", LEN SCORES\n');
+  const output = [];
+
+  await interpret(ast, {
+    print(value) {
+      output.push(value);
+    },
+  });
+
+  assert.deepEqual(output, ['53']);
+});
+
+test('interprets STR for numbers, booleans, and arrays', async () => {
+  const ast = parse('DIM SCORES(2)\nSCORES(0) = 7\nPRINT STR 42, STR TRUE, STR SCORES\n');
+  const output = [];
+
+  await interpret(ast, {
+    print(value) {
+      output.push(value);
+    },
+  });
+
+  assert.deepEqual(output, ['42true[7, 0]']);
+});
+
+test('interprets VAL for numeric strings', async () => {
+  const ast = parse('PRINT VAL "1", VAL " 3.5 "\nFOR I=VAL "1" TO VAL "2"\nPRINT I\nEND FOR\n');
+  const output = [];
+
+  await interpret(ast, {
+    print(value) {
+      output.push(value);
+    },
+  });
+
+  assert.deepEqual(output, ['13.5', '1', '2']);
+});
+
+test('interprets ASC and MID with 0-based string semantics', async () => {
+  const ast = parse('PRINT ASC "A", MID "HELLO", 1, 3, MID "12345", 1\n');
+  const output = [];
+
+  await interpret(ast, {
+    print(value) {
+      output.push(value);
+    },
+  });
+
+  assert.deepEqual(output, ['65ELL2345']);
+});
+
+test('rejects LEN on unsupported values', async () => {
+  const ast = parse('PRINT LEN TRUE\n');
+
+  await assert.rejects(
+    () => interpret(ast),
+    error => {
+      assert.equal(error.name, 'RuntimeError');
+      assert.match(error.message, /LEN requires a string or array argument at 1:7/);
+      return true;
+    },
+  );
+});
+
+test('rejects VAL on non-strings and invalid numeric strings', async () => {
+  const nonStringAst = parse('PRINT VAL 1\n');
+  const invalidStringAst = parse('PRINT VAL "NOPE"\n');
+
+  await assert.rejects(
+    () => interpret(nonStringAst),
+    error => {
+      assert.equal(error.name, 'RuntimeError');
+      assert.match(error.message, /VAL requires a string argument at 1:7/);
+      return true;
+    },
+  );
+
+  await assert.rejects(
+    () => interpret(invalidStringAst),
+    error => {
+      assert.equal(error.name, 'RuntimeError');
+      assert.match(error.message, /VAL requires a numeric string at 1:7/);
+      return true;
+    },
+  );
+});
+
+test('rejects invalid ASC and MID arguments', async () => {
+  const emptyAscAst = parse('PRINT ASC ""\n');
+  const badMidSourceAst = parse('PRINT MID 1, 0, 1\n');
+  const badMidStartAst = parse('PRINT MID "HELLO", -1, 2\n');
+  const badMidLengthAst = parse('PRINT MID "HELLO", 1, -2\n');
+
+  await assert.rejects(
+    () => interpret(emptyAscAst),
+    error => {
+      assert.equal(error.name, 'RuntimeError');
+      assert.match(error.message, /ASC requires a non-empty string at 1:7/);
+      return true;
+    },
+  );
+
+  await assert.rejects(
+    () => interpret(badMidSourceAst),
+    error => {
+      assert.equal(error.name, 'RuntimeError');
+      assert.match(error.message, /MID requires a string source at 1:7/);
+      return true;
+    },
+  );
+
+  await assert.rejects(
+    () => interpret(badMidStartAst),
+    error => {
+      assert.equal(error.name, 'RuntimeError');
+      assert.match(error.message, /MID start must be a non-negative integer at 1:20/);
+      return true;
+    },
+  );
+
+  await assert.rejects(
+    () => interpret(badMidLengthAst),
+    error => {
+      assert.equal(error.name, 'RuntimeError');
+      assert.match(error.message, /MID length must be a non-negative integer at 1:23/);
+      return true;
+    },
+  );
 });
 
 test('interprets RND max and min/max forms as deterministic integer ranges', async () => {

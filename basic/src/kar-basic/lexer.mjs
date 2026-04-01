@@ -2,7 +2,7 @@ import { KAR_BASIC_KEYWORDS } from './language.mjs';
 
 const DEFAULT_KEYWORDS = new Set(KAR_BASIC_KEYWORDS);
 
-const DEFAULT_WORD_OPERATORS = new Set(['AND', 'OR', 'NOT']);
+const DEFAULT_WORD_OPERATORS = new Set(['AND', 'OR', 'NOT', 'DIV', 'MOD']);
 const DEFAULT_SYMBOL_OPERATORS = [
   '<=',
   '>=',
