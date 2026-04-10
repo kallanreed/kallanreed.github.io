@@ -556,8 +556,9 @@
       sec.bars = parseInt(f('[data-field="bars"]')?.value) || 1;
 
       // Read events
-      card.querySelectorAll('.event-row').forEach((eRow, ei) => {
-        if (ei >= sec.events.length) return;
+      card.querySelectorAll('.event-row').forEach((eRow) => {
+        const ei = parseInt(eRow.dataset.event ?? eRow.getAttribute('data-event'));
+        if (isNaN(ei) || ei >= sec.events.length) return;
         const evt = sec.events[ei];
         const ef = (sel) => eRow.querySelector(sel);
         if (ef('[data-efield="startBar"]')) evt.startBar = parseInt(ef('[data-efield="startBar"]').value) || 1;
