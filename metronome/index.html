@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Conductor">
+  <meta name="theme-color" content="#0a0a0f">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon.svg">
+  <link rel="stylesheet" href="style.css">
+  <title>Virtual Conductor</title>
+</head>
+<body>
+  <div id="app">
+    <!-- Song List View -->
+    <div id="list-view" class="view active">
+      <div class="view-header">
+        <h1>🎼 Virtual Conductor</h1>
+        <div class="hdr-tools">
+          <button id="tap-tempo-btn" class="btn-icon" title="Tap Tempo">♩</button>
+          <button id="io-btn" class="btn-icon" title="Import / Export">⇅</button>
+        </div>
+      </div>
+      <div id="song-list" class="view-body"></div>
+      <button id="new-song-btn" class="fab" title="New Song">+</button>
+    </div>
+
+    <!-- Editor View -->
+    <div id="editor-view" class="view">
+      <div class="view-header">
+        <button id="editor-back-btn" class="hdr-btn">← Back</button>
+        <h2 id="editor-title">Edit Song</h2>
+        <button id="editor-play-btn" class="hdr-btn accent">▶ Perform</button>
+      </div>
+      <div id="editor-content" class="view-body"></div>
+    </div>
+
+    <!-- Performance View -->
+    <div id="performance-view" class="view perf-view">
+      <div class="perf-controls">
+        <button id="perf-close-btn" class="perf-ctrl-btn">✕</button>
+        <div class="perf-ctrl-tags">
+          <span id="perf-song-name" class="perf-tag song-name"></span>
+          <span class="perf-tag-sep">·</span>
+          <span id="perf-song-duration" class="perf-tag"></span>
+          <span class="perf-tag-sep">·</span>
+          <span id="perf-key" class="perf-tag key"></span>
+          <span id="perf-time-sig" class="perf-tag"></span>
+          <span id="perf-tempo-display" class="perf-tag tempo"></span>
+          <button id="perf-audio-toggle" class="perf-audio-btn">🔇</button>
+        </div>
+      </div>
+
+      <div class="perf-main">
+        <!-- Row 1: Section + Current Bar side by side -->
+        <div class="perf-row-top">
+          <div id="perf-section-box" class="section-box">
+            <div id="perf-section-letter" class="section-letter">—</div>
+            <div id="perf-section-label" class="section-label"></div>
+          </div>
+          <div id="perf-bar-box" class="bar-box">
+            <div id="perf-bar-number" class="bar-number">—</div>
+
+          </div>
+        </div>
+
+        <!-- Row 2: Beat indicators -->
+        <div id="perf-beats-container" class="perf-row-beats"></div>
+
+        <!-- Row 3: Warning banner -->
+        <div id="perf-warning" class="perf-row-warning hidden"></div>
+      </div>
+
+      <div class="perf-footer">
+        <div class="perf-scrubber">
+          <input type="range" id="perf-scrub" min="1" max="1" value="1" step="1" class="perf-scrub-input">
+          <div id="perf-scrub-label" class="perf-scrub-label">Bar 1</div>
+        </div>
+        <div class="perf-transport">
+          <button id="perf-restart-btn" class="transport-btn" title="Restart">⏮</button>
+          <button id="perf-stop-btn" class="transport-btn" title="Stop">⏹</button>
+          <button id="perf-play-toggle" class="transport-btn play-btn" title="Play">▶</button>
+        </div>
+        <div id="perf-next-info" class="perf-next"></div>
+      </div>
+
+
+    </div>
+
+    <!-- Tap Tempo Dialog -->
+    <div id="tap-tempo-dialog" class="dialog-overlay hidden">
+      <div class="dialog-card">
+        <div class="dialog-header">
+          <span>Tap Tempo</span>
+          <button id="tap-close-btn" class="btn-sm">✕</button>
+        </div>
+        <div id="tap-bpm-display" class="tap-bpm tap-hint">Tap…</div>
+        <button id="tap-btn" class="tap-big-btn">TAP</button>
+        <button id="tap-reset-btn" class="btn tap-reset">Reset</button>
+      </div>
+    </div>
+
+    <!-- Import / Export Dialog -->
+    <div id="io-dialog" class="dialog-overlay hidden">
+      <div class="dialog-card">
+        <div class="dialog-header">
+          <span>Import / Export</span>
+          <button id="io-close-btn" class="btn-sm">✕</button>
+        </div>
+        <p class="dialog-hint">Export saves all songs as a JSON file. Import adds songs from a JSON file to your library.</p>
+        <div class="io-btn-row">
+          <button id="export-btn" class="btn primary">📤 Export</button>
+          <button id="import-trigger-btn" class="btn">📥 Import</button>
+        </div>
+        <input type="file" id="import-file" accept=".json" style="display:none">
+      </div>
+    </div>
+
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>
