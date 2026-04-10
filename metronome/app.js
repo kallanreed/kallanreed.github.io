@@ -452,7 +452,6 @@
       <div class="field-group"><label>Tempo (BPM)</label>
         <div class="tempo-input-row">
           <input type="number" data-field="tempo" min="10" max="400" value="${sec.tempo}">
-          ${si > 0 ? `<button type="button" class="btn-a-tempo" data-action="a-tempo">a tempo</button>` : ''}
         </div></div>
     `;
     row2.innerHTML = tempoHtml;
@@ -591,7 +590,9 @@
 
     switch (action) {
       case 'add': {
-        song.sections.push(defaultSection(song.sections.length));
+        const newSec = defaultSection(song.sections.length);
+        newSec.tempo = song.sections[0]?.tempo ?? newSec.tempo;
+        song.sections.push(newSec);
         break;
       }
       case 'del-section': {
@@ -611,10 +612,7 @@
         if (si < song.sections.length - 1) [song.sections[si + 1], song.sections[si]] = [song.sections[si], song.sections[si + 1]];
         break;
       }
-      case 'a-tempo': {
-        song.sections[si].tempo = song.sections[0].tempo;
-        break;
-      }
+      case 'a-tempo': break;
       case 'add-rit': {
         song.sections[si].events.push({ type: 'rit', startBar: Math.max(1, song.sections[si].bars - 1), endBar: song.sections[si].bars, targetTempo: Math.round(song.sections[si].tempo * 0.9), color: null, label: null });
         break;

@@ -196,14 +196,6 @@ label {
 
 .tempo-input-row { display: flex; gap: 6px; align-items: center; }
 .tempo-input-row input { flex: 1; min-width: 0; }
-.btn-a-tempo {
-  background: rgba(78, 205, 196, 0.12);
-  border: 1px solid rgba(78, 205, 196, 0.3);
-  color: var(--secondary);
-  font-size: 11px; font-style: italic; font-weight: 600;
-  padding: 6px 10px; border-radius: 6px; cursor: pointer;
-  white-space: nowrap; flex-shrink: 0;
-}
 
 /* Section Cards */
 .section-card {
