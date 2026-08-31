@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="sail-track-test" xmlns="http://www.topografix.com/GPX/1/1">
+  <trk>
+    <name>Synthetic Constant-Speed Test Track</name>
+    <trkseg>
+      <trkpt lat="45.000000" lon="-70.00000000"><ele>0</ele><time>2026-06-01T12:00:00Z</time></trkpt>
+      <trkpt lat="45.000000" lon="-69.99882228"><ele>0</ele><time>2026-06-01T12:00:30Z</time></trkpt>
+      <trkpt lat="45.000000" lon="-69.99764457"><ele>0</ele><time>2026-06-01T12:01:00Z</time></trkpt>
+      <trkpt lat="45.000000" lon="-69.99646685"><ele>0</ele><time>2026-06-01T12:01:30Z</time></trkpt>
+      <trkpt lat="45.000000" lon="-69.99528913"><ele>0</ele><time>2026-06-01T12:02:00Z</time></trkpt>
+      <trkpt lat="45.000000" lon="-69.99411141"><ele>0</ele><time>2026-06-01T12:02:30Z</time></trkpt>
+      <trkpt lat="45.000000" lon="-69.99293370"><ele>0</ele><time>2026-06-01T12:03:00Z</time></trkpt>
+      <trkpt lat="45.000000" lon="-69.99175598"><ele>0</ele><time>2026-06-01T12:03:30Z</time></trkpt>
+      <trkpt lat="45.000000" lon="-69.99057826"><ele>0</ele><time>2026-06-01T12:04:00Z</time></trkpt>
+      <trkpt lat="45.000000" lon="-69.98940055"><ele>0</ele><time>2026-06-01T12:04:30Z</time></trkpt>
+      <trkpt lat="45.000000" lon="-69.98822283"><ele>0</ele><time>2026-06-01T12:05:00Z</time></trkpt>
+      <trkpt lat="45.000000" lon="-69.98704511"><ele>0</ele><time>2026-06-01T12:05:30Z</time></trkpt>
+      <trkpt lat="45.000000" lon="-69.98586739"><ele>0</ele><time>2026-06-01T12:06:00Z</time></trkpt>
+      <trkpt lat="45.000000" lon="-69.98468968"><ele>0</ele><time>2026-06-01T12:06:30Z</time></trkpt>
+      <trkpt lat="45.000000" lon="-69.98351196"><ele>0</ele><time>2026-06-01T12:07:00Z</time></trkpt>
+      <trkpt lat="45.000000" lon="-69.98233424"><ele>0</ele><time>2026-06-01T12:07:30Z</time></trkpt>
+      <trkpt lat="45.000000" lon="-69.98115653"><ele>0</ele><time>2026-06-01T12:08:00Z</time></trkpt>
+      <trkpt lat="45.000000" lon="-69.97997881"><ele>0</ele><time>2026-06-01T12:08:30Z</time></trkpt>
+      <trkpt lat="45.000000" lon="-69.97880109"><ele>0</ele><time>2026-06-01T12:09:00Z</time></trkpt>
+      <trkpt lat="45.000000" lon="-69.97762337"><ele>0</ele><time>2026-06-01T12:09:30Z</time></trkpt>
+      <trkpt lat="45.000000" lon="-69.97644566"><ele>0</ele><time>2026-06-01T12:10:00Z</time></trkpt>
+    </trkseg>
+  </trk>
+</gpx>

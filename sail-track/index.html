@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Sail Track">
+  <meta name="theme-color" content="#0a0a0f">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon.png">
+  <link rel="stylesheet" href="vendor/leaflet.css">
+  <link rel="stylesheet" href="style.css">
+  <title>Sail Track</title>
+</head>
+<body>
+  <div id="app">
+    <!-- Header -->
+    <div class="hdr">
+      <h1>⛵ Sail Track</h1>
+      <div class="hdr-tools">
+        <button id="open-btn" class="hdr-btn" title="Open GPX">Open</button>
+        <button id="settings-btn" class="btn-icon" title="Settings">⚙</button>
+      </div>
+      <input type="file" id="file-input" accept=".gpx,application/gpx+xml" style="display:none">
+    </div>
+
+    <!-- Map -->
+    <div id="map-wrap">
+      <div id="map"></div>
+      <div id="readout-chip" class="chip hidden"></div>
+      <div id="legend" class="legend hidden">
+        <div class="legend-bar"></div>
+        <div class="legend-label legend-hi" id="legend-hi"></div>
+        <div class="legend-label legend-lo" id="legend-lo"></div>
+      </div>
+      <div id="toast" class="toast hidden"></div>
+    </div>
+
+    <!-- Strip chart + range slider -->
+    <div id="range-wrap" class="range">
+      <canvas id="strip-canvas"></canvas>
+      <div id="handle-start" class="handle" tabindex="0"></div>
+      <div id="handle-end" class="handle" tabindex="0"></div>
+      <div id="range-track"></div>
+    </div>
+
+    <!-- Stats bar -->
+    <div id="stats-bar" class="stats-bar">
+      <div class="stat"><span id="stat-dist" class="stat-val">—</span><span class="stat-label">Nm</span></div>
+      <div class="stat"><span id="stat-dur" class="stat-val">—</span><span class="stat-label">Duration</span></div>
+      <div class="stat"><span id="stat-avg" class="stat-val">—</span><span class="stat-label">Avg kn</span></div>
+      <div class="stat"><span id="stat-max" class="stat-val">—</span><span class="stat-label">Max kn</span></div>
+    </div>
+
+    <!-- Settings bottom sheet -->
+    <div id="settings-sheet" class="sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-body">
+        <div class="sheet-header">
+          <span>Settings</span>
+          <button id="settings-close-btn" class="btn-sm">✕</button>
+        </div>
+
+        <label>Smoothing window (legs): <span id="lbl-window">5</span></label>
+        <input type="range" id="opt-window" min="1" max="21" step="2" value="5">
+
+        <label>Max speed clamp: <span id="lbl-maxkn">20</span> kn</label>
+        <input type="range" id="opt-maxkn" min="5" max="40" step="1" value="20">
+
+        <label class="row-label">
+          <span>Outlier rejection</span>
+          <input type="checkbox" id="opt-outlier" checked>
+        </label>
+        <label>Outlier factor: <span id="lbl-outlier-factor">3</span>×</label>
+        <input type="range" id="opt-outlier-factor" min="2" max="5" step="0.5" value="3">
+
+        <label>Base layer</label>
+        <select id="opt-baselayer">
+          <option value="osm">OpenStreetMap</option>
+          <option value="topo">OpenTopoMap</option>
+        </select>
+
+        <label class="row-label">
+          <span>OpenSeaMap overlay</span>
+          <input type="checkbox" id="opt-seamark" checked>
+        </label>
+
+        <label>Track width: <span id="lbl-trackwidth">3</span>px</label>
+        <input type="range" id="opt-trackwidth" min="1" max="8" step="1" value="3">
+
+        <button id="reset-defaults-btn" class="btn">Reset to defaults</button>
+      </div>
+    </div>
+    <div id="sheet-scrim" class="sheet-scrim hidden"></div>
+  </div>
+  <script src="vendor/leaflet.js"></script>
+  <script src="gpx.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
