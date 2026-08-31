@@ -94,12 +94,10 @@ test.describe('GPX math (window.GPX)', () => {
     });
     expect(result.full.distNm).toBeCloseTo(1.0, 1);
     expect(result.full.durationSec).toBe(600);
-    expect(result.full.avgKn).toBeCloseTo(6.0, 1);
     expect(result.full.sogKn).toBeCloseTo(6.0, 1);
     expect(result.full.cmgDeg).toBeCloseTo(90, 0);
     expect(result.half.distNm).toBeCloseTo(0.5, 1);
     expect(result.half.durationSec).toBe(300);
-    expect(result.half.avgKn).toBeCloseTo(6.0, 1);
     expect(result.half.sogKn).toBeCloseTo(6.0, 1);
     expect(result.half.cmgDeg).toBeCloseTo(90, 0);
   });

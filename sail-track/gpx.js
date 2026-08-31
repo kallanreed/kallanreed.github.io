@@ -202,7 +202,6 @@
     return {
       distNm: distNm,
       durationSec: durationSec,
-      avgKn: sogKn,
       sogKn: sogKn,
       cmgDeg: cmgDeg,
       maxKn: maxKn
