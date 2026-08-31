@@ -309,7 +309,8 @@
     var summary = window.GPX.summarize(state.points, state.cumNm, state.smoothedAll, state.iStart, state.iEnd);
     $('#stat-dist').textContent = summary.distNm.toFixed(2);
     $('#stat-dur').textContent = formatDuration(summary.durationSec);
-    $('#stat-avg').textContent = summary.avgKn.toFixed(1);
+    $('#stat-sog').textContent = summary.sogKn.toFixed(1);
+    $('#stat-cmg').textContent = formatCourse(summary.cmgDeg);
     $('#stat-max').textContent = summary.maxKn.toFixed(1);
   }
 
@@ -320,6 +321,11 @@
     var s = sec % 60;
     if (h > 0) return h + ':' + String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
     return m + ':' + String(s).padStart(2, '0');
+  }
+
+  function formatCourse(deg) {
+    if (deg == null || !isFinite(deg)) return '—';
+    return Math.round(deg) + '°';
   }
 
   /* ====== Strip chart + double-ended slider ====== */
