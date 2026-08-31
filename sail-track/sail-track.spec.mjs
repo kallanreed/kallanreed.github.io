@@ -94,10 +94,27 @@ test.describe('GPX math (window.GPX)', () => {
     });
     expect(result.full.distNm).toBeCloseTo(1.0, 1);
     expect(result.full.durationSec).toBe(600);
-    expect(result.full.avgKn).toBeCloseTo(6.0, 1);
+    expect(result.full.sogKn).toBeCloseTo(6.0, 1);
+    expect(result.full.cmgDeg).toBeCloseTo(90, 0);
     expect(result.half.distNm).toBeCloseTo(0.5, 1);
     expect(result.half.durationSec).toBe(300);
-    expect(result.half.avgKn).toBeCloseTo(6.0, 1);
+    expect(result.half.sogKn).toBeCloseTo(6.0, 1);
+    expect(result.half.cmgDeg).toBeCloseTo(90, 0);
+  });
+
+  test('summarize: CMG is blank for a closed loop even when SOG is non-zero', async ({ page }) => {
+    const result = await page.evaluate(() => {
+      const points = [
+        { lat: 45.0, lon: -70.0, ele: 0, t: Date.UTC(2026, 5, 1, 12, 0, 0) },
+        { lat: 45.0, lon: -69.99, ele: 0, t: Date.UTC(2026, 5, 1, 12, 1, 0) },
+        { lat: 45.0, lon: -70.0, ele: 0, t: Date.UTC(2026, 5, 1, 12, 2, 0) }
+      ];
+      const { legs, cumNm } = window.GPX.computeSpeeds(points);
+      const smoothed = window.GPX.smooth(legs.map(l => l.rawKn), { windowSize: 1, rejectOutliers: false, maxKn: 100 });
+      return window.GPX.summarize(points, cumNm, smoothed, 0, 2);
+    });
+    expect(result.sogKn).toBeGreaterThan(0);
+    expect(result.cmgDeg).toBeNull();
   });
 
   test('speedToColor: red at lo, green at hi, orange-ish mid-scale', async ({ page }) => {
@@ -131,7 +148,8 @@ test.describe('UI', () => {
   test('loading sample GPX populates the stats bar', async ({ page }) => {
     await page.setInputFiles('#file-input', SAMPLE_GPX);
     await expect(page.locator('#stat-dist')).toHaveText('1.00', { timeout: 10000 });
-    await expect(page.locator('#stat-avg')).toContainText('6.0');
+    await expect(page.locator('#stat-sog')).toContainText('6.0');
+    await expect(page.locator('#stat-cmg')).toHaveText('90°');
   });
 
   test('dragging the right handle to the midpoint reduces the reported distance', async ({ page }) => {
@@ -154,5 +172,7 @@ test.describe('UI', () => {
     const distText = await page.locator('#stat-dist').textContent();
     const dist = parseFloat(distText);
     expect(dist).toBeLessThan(1.0);
+    await expect(page.locator('#stat-sog')).toContainText('6.0');
+    await expect(page.locator('#stat-cmg')).toHaveText('90°');
   });
 });

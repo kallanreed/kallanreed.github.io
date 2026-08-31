@@ -2,6 +2,7 @@
   'use strict';
 
   var EARTH_RADIUS_NM = 3440.065;
+  var MIN_CMG_DISTANCE_NM = 0.001;
 
   /* ====== parse ====== */
   function parse(xmlString) {
@@ -79,6 +80,17 @@
       Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
     var c = 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
     return EARTH_RADIUS_NM * c;
+  }
+
+  function bearingDeg(a, b) {
+    var lat1 = a.lat * Math.PI / 180;
+    var lat2 = b.lat * Math.PI / 180;
+    var dLon = (b.lon - a.lon) * Math.PI / 180;
+    var y = Math.sin(dLon) * Math.cos(lat2);
+    var x = Math.cos(lat1) * Math.sin(lat2) -
+      Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLon);
+    var deg = Math.atan2(y, x) * 180 / Math.PI;
+    return (deg + 360) % 360;
   }
 
   /* ====== computeSpeeds ====== */
@@ -164,9 +176,14 @@
 
   /* ====== summarize ====== */
   function summarize(points, cumNm, speedsKn, iStart, iEnd) {
+    var startPoint = points[iStart];
+    var endPoint = points[iEnd];
     var distNm = cumNm[iEnd] - cumNm[iStart];
-    var durationSec = (points[iEnd].t - points[iStart].t) / 1000;
-    var avgKn = durationSec > 0 ? distNm / (durationSec / 3600) : 0;
+    var durationSec = (endPoint.t - startPoint.t) / 1000;
+    // Selected-range SOG is reported as average speed over the covered track distance.
+    var sogKn = durationSec > 0 ? distNm / (durationSec / 3600) : 0;
+    var madeGoodNm = haversineNm(startPoint, endPoint);
+    var cmgDeg = madeGoodNm >= MIN_CMG_DISTANCE_NM ? bearingDeg(startPoint, endPoint) : null;
 
     // speedsKn is indexed per-leg (legs run from point i-1 -> i, stored at index i-1
     // relative to the *filtered* legs array — but for summarize we expect an array
@@ -184,7 +201,13 @@
     }
     if (!any) maxKn = 0;
 
-    return { distNm: distNm, durationSec: durationSec, avgKn: avgKn, maxKn: maxKn };
+    return {
+      distNm: distNm,
+      durationSec: durationSec,
+      sogKn: sogKn,
+      cmgDeg: cmgDeg,
+      maxKn: maxKn
+    };
   }
 
   /* ====== speedToColor ====== */
@@ -224,6 +247,7 @@
   global.GPX = {
     parse: parse,
     haversineNm: haversineNm,
+    bearingDeg: bearingDeg,
     computeSpeeds: computeSpeeds,
     smooth: smooth,
     summarize: summarize,
