@@ -2,6 +2,7 @@
   'use strict';
 
   var EARTH_RADIUS_NM = 3440.065;
+  var MIN_CMG_DISTANCE_NM = 0.001;
 
   /* ====== parse ====== */
   function parse(xmlString) {
@@ -181,7 +182,7 @@
     var durationSec = (endPoint.t - startPoint.t) / 1000;
     var sogKn = durationSec > 0 ? distNm / (durationSec / 3600) : 0;
     var madeGoodNm = haversineNm(startPoint, endPoint);
-    var cmgDeg = madeGoodNm > 0 ? bearingDeg(startPoint, endPoint) : null;
+    var cmgDeg = madeGoodNm >= MIN_CMG_DISTANCE_NM ? bearingDeg(startPoint, endPoint) : null;
 
     // speedsKn is indexed per-leg (legs run from point i-1 -> i, stored at index i-1
     // relative to the *filtered* legs array — but for summarize we expect an array

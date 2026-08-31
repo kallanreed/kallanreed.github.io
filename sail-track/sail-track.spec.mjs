@@ -102,6 +102,21 @@ test.describe('GPX math (window.GPX)', () => {
     expect(result.half.cmgDeg).toBeCloseTo(90, 0);
   });
 
+  test('summarize: CMG is blank for a closed loop even when SOG is non-zero', async ({ page }) => {
+    const result = await page.evaluate(() => {
+      const points = [
+        { lat: 45.0, lon: -70.0, ele: 0, t: Date.UTC(2026, 5, 1, 12, 0, 0) },
+        { lat: 45.0, lon: -69.99, ele: 0, t: Date.UTC(2026, 5, 1, 12, 1, 0) },
+        { lat: 45.0, lon: -70.0, ele: 0, t: Date.UTC(2026, 5, 1, 12, 2, 0) }
+      ];
+      const { legs, cumNm } = window.GPX.computeSpeeds(points);
+      const smoothed = window.GPX.smooth(legs.map(l => l.rawKn), { windowSize: 1, rejectOutliers: false, maxKn: 100 });
+      return window.GPX.summarize(points, cumNm, smoothed, 0, 2);
+    });
+    expect(result.sogKn).toBeGreaterThan(0);
+    expect(result.cmgDeg).toBeNull();
+  });
+
   test('speedToColor: red at lo, green at hi, orange-ish mid-scale', async ({ page }) => {
     const result = await page.evaluate(() => {
       return {
