@@ -180,6 +180,7 @@
     var endPoint = points[iEnd];
     var distNm = cumNm[iEnd] - cumNm[iStart];
     var durationSec = (endPoint.t - startPoint.t) / 1000;
+    // Selected-range SOG is reported as average speed over the covered track distance.
     var sogKn = durationSec > 0 ? distNm / (durationSec / 3600) : 0;
     var madeGoodNm = haversineNm(startPoint, endPoint);
     var cmgDeg = madeGoodNm >= MIN_CMG_DISTANCE_NM ? bearingDeg(startPoint, endPoint) : null;

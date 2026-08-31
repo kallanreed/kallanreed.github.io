@@ -324,7 +324,7 @@
   }
 
   function formatCourse(deg) {
-    if (deg === null) return '—';
+    if (deg == null) return '—';
     return Math.round(deg) + '°';
   }
 
