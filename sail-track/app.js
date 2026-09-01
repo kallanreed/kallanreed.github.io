@@ -15,7 +15,9 @@
     outlierFactor: 3,
     baseLayer: 'osm',
     seamark: true,
-    trackWidth: 3
+    trackWidth: 3,
+    scaleMinKn: null, // null = auto (full-track minimum)
+    scaleMaxKn: null  // null = auto (full-track maximum)
   };
 
   /* ====== Helpers ====== */
@@ -32,6 +34,8 @@
     cumNm: null,
     rawKn: null,
     smoothedAll: null,
+    fullTrackLo: 0,
+    fullTrackHi: 0,
     iStart: 0,
     iEnd: 0,
     map: null,
@@ -196,6 +200,15 @@
       windowSize: state.settings.windowSize,
       maxKn: state.settings.maxKn
     });
+    // Recompute full-track speed range for the fixed color scale
+    var lo = Infinity, hi = -Infinity;
+    for (var k = 0; k < state.smoothedAll.length; k++) {
+      var v = state.smoothedAll[k];
+      if (v < lo) lo = v;
+      if (v > hi) hi = v;
+    }
+    state.fullTrackLo = lo === Infinity ? 0 : lo;
+    state.fullTrackHi = hi === -Infinity ? 0 : hi;
   }
 
   function fitToTrack() {
@@ -236,13 +249,10 @@
 
   /* ====== Color scale for the current selection ====== */
   function currentSelectionSpeedRange() {
-    var lo = Infinity, hi = -Infinity;
-    for (var k = state.iStart; k < state.iEnd; k++) {
-      var v = state.smoothedAll[k];
-      if (v < lo) lo = v;
-      if (v > hi) hi = v;
-    }
-    if (lo === Infinity) { lo = 0; hi = 0; }
+    var s = state.settings;
+    var lo = (s.scaleMinKn !== null && s.scaleMinKn !== undefined) ? s.scaleMinKn : state.fullTrackLo;
+    var hi = (s.scaleMaxKn !== null && s.scaleMaxKn !== undefined) ? s.scaleMaxKn : state.fullTrackHi;
+    if (hi <= lo) hi = lo + 1;
     return { lo: lo, hi: hi };
   }
 
@@ -542,6 +552,8 @@
     $('#opt-seamark').checked = s.seamark;
     $('#opt-trackwidth').value = s.trackWidth;
     $('#lbl-trackwidth').textContent = s.trackWidth;
+    $('#opt-scale-min').value = s.scaleMinKn !== null && s.scaleMinKn !== undefined ? s.scaleMinKn : '';
+    $('#opt-scale-max').value = s.scaleMaxKn !== null && s.scaleMaxKn !== undefined ? s.scaleMaxKn : '';
   }
 
   function onSettingChange() {
@@ -554,6 +566,12 @@
     s.baseLayer = $('#opt-baselayer').value;
     s.seamark = $('#opt-seamark').checked;
     s.trackWidth = parseInt($('#opt-trackwidth').value, 10);
+    var minVal = $('#opt-scale-min').value.trim();
+    var maxVal = $('#opt-scale-max').value.trim();
+    var parsedMin = minVal === '' ? NaN : parseFloat(minVal);
+    var parsedMax = maxVal === '' ? NaN : parseFloat(maxVal);
+    s.scaleMinKn = (!isNaN(parsedMin) && isFinite(parsedMin)) ? parsedMin : null;
+    s.scaleMaxKn = (!isNaN(parsedMax) && isFinite(parsedMax)) ? parsedMax : null;
 
     $('#lbl-window').textContent = s.windowSize;
     $('#lbl-maxkn').textContent = s.maxKn;
@@ -572,7 +590,7 @@
     }
   }
 
-  ['opt-window', 'opt-maxkn', 'opt-outlier', 'opt-outlier-factor', 'opt-baselayer', 'opt-seamark', 'opt-trackwidth']
+  ['opt-window', 'opt-maxkn', 'opt-outlier', 'opt-outlier-factor', 'opt-baselayer', 'opt-seamark', 'opt-trackwidth', 'opt-scale-min', 'opt-scale-max']
     .forEach(function (id) {
       $('#' + id).addEventListener('input', onSettingChange);
       $('#' + id).addEventListener('change', onSettingChange);
