@@ -248,7 +248,7 @@
   });
 
   /* ====== Color scale for the current selection ====== */
-  function currentSelectionSpeedRange() {
+  function colorScaleRange() {
     var s = state.settings;
     var lo = (s.scaleMinKn !== null && s.scaleMinKn !== undefined) ? s.scaleMinKn : state.fullTrackLo;
     var hi = (s.scaleMaxKn !== null && s.scaleMaxKn !== undefined) ? s.scaleMaxKn : state.fullTrackHi;
@@ -270,7 +270,7 @@
     state.trackLayerGroup.clearLayers();
     if (!state.points || state.iEnd <= state.iStart) return;
 
-    var range = currentSelectionSpeedRange();
+    var range = colorScaleRange();
     var lo = range.lo, hi = range.hi;
 
     var legCount = state.iEnd - state.iStart;
@@ -410,7 +410,7 @@
     stripCtx.stroke();
 
     // Selected span, gradient colors
-    var range = currentSelectionSpeedRange();
+    var range = colorScaleRange();
     var lo = range.lo, hi = range.hi;
     for (var m = state.iStart; m < state.iEnd; m++) {
       var x1 = indexToX(m, w);
