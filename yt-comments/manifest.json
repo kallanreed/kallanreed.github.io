@@ -1,0 +1,17 @@
+{
+  "name": "YT Comment Search",
+  "short_name": "YT Comments",
+  "description": "Fetch, index, and live-search all comments on a YouTube video",
+  "start_url": ".",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0a0a0f",
+  "theme_color": "#0a0a0f",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

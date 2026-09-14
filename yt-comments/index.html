@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="YT Comments">
+  <meta name="theme-color" content="#0a0a0f">
+  <meta name="description" content="Fetch, index, and live-search all comments on a YouTube video.">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon.svg">
+  <link rel="stylesheet" href="style.css">
+  <title>YT Comment Search</title>
+</head>
+<body>
+  <div id="app">
+    <!-- Header -->
+    <div class="hdr">
+      <h1>💬 YT Comment Search</h1>
+      <div class="hdr-tools">
+        <button id="settings-btn" class="btn-icon" title="Settings">⚙</button>
+      </div>
+    </div>
+
+    <!-- Load bar -->
+    <div id="load-bar" class="load-bar">
+      <form id="load-form" autocomplete="off">
+        <input type="text" id="video-input" placeholder="Paste YouTube video URL or ID" inputmode="url">
+        <button type="submit" id="load-btn" class="btn">Load</button>
+      </form>
+      <div id="video-meta" class="video-meta hidden">
+        <span id="video-title" class="video-title"></span>
+        <button id="refresh-btn" class="btn-sm" title="Re-fetch from YouTube">↻</button>
+      </div>
+    </div>
+
+    <!-- Progress -->
+    <div id="progress-wrap" class="progress-wrap hidden">
+      <div class="progress-track"><div id="progress-fill" class="progress-fill"></div></div>
+      <div class="progress-row">
+        <span id="progress-text">Fetching comments…</span>
+        <button id="cancel-fetch-btn" class="btn-sm">Cancel</button>
+      </div>
+    </div>
+
+    <div id="status-msg" class="status-msg hidden"></div>
+
+    <!-- Search -->
+    <div id="search-bar" class="search-bar hidden">
+      <input type="text" id="search-input" placeholder="Search comments…" autocomplete="off">
+      <span id="search-count" class="search-count"></span>
+    </div>
+
+    <!-- Main content: list view + thread view -->
+    <div id="content" class="content hidden">
+      <div id="list-view" class="list-view">
+        <ul id="results-list" class="results-list"></ul>
+        <div id="list-empty" class="list-empty hidden">No matching comments.</div>
+      </div>
+
+      <div id="thread-view" class="thread-view hidden">
+        <div class="thread-hdr">
+          <button id="thread-back-btn" class="btn-sm">‹ Back</button>
+          <span class="thread-hdr-label">Comment thread</span>
+        </div>
+        <div id="thread-body" class="thread-body"></div>
+      </div>
+    </div>
+
+    <!-- Settings bottom sheet -->
+    <div id="settings-sheet" class="sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-body">
+        <div class="sheet-header">
+          <span>Settings</span>
+          <button id="settings-close-btn" class="btn-sm">✕</button>
+        </div>
+
+        <label>YouTube Data API key</label>
+        <input type="password" id="opt-apikey" placeholder="Paste your API key" autocomplete="off">
+        <p class="hint">
+          Stored only in this browser (localStorage) — never sent anywhere but Google's API.
+          Get a free key from the <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener">Google Cloud Console</a>
+          (enable "YouTube Data API v3"), and restrict it to your site's origin.
+        </p>
+
+        <label class="row-label">
+          <span>Eagerly fetch all replies</span>
+          <input type="checkbox" id="opt-eager-replies">
+        </label>
+        <p class="hint">Off by default to save API quota — replies load on demand when you open a thread.</p>
+
+        <label>Comment order</label>
+        <select id="opt-order">
+          <option value="time">Newest first</option>
+          <option value="relevance">Top comments</option>
+        </select>
+
+        <button id="clear-cache-btn" class="btn">Clear cached comments</button>
+      </div>
+    </div>
+    <div id="sheet-scrim" class="sheet-scrim hidden"></div>
+  </div>
+  <script src="db.js"></script>
+  <script src="youtube-api.js"></script>
+  <script src="search-index.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

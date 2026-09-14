@@ -34,3 +34,43 @@ html {
     list-style-type: none;
     padding-left: 1em;
 }
+
+.auto-gen {
+    padding-top: 1em;
+    padding-bottom: 1em;
+}
+
+.auto-gen .sub-header {
+    font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+    font-size: large;
+    padding-bottom: 0.5em;
+}
+
+.auto-gen-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1.5em;
+}
+
+.auto-gen-controls label {
+    display: flex;
+    flex-direction: column;
+    font-size: small;
+    gap: 0.25em;
+}
+
+.auto-gen-controls input[type="range"] {
+    width: 10em;
+}
+
+.auto-gen-controls input[type="text"],
+.auto-gen-controls input:not([type]) {
+    width: 5em;
+}
+
+.temperature-hint {
+    padding-top: 0.5em;
+    font-size: small;
+    font-style: italic;
+}

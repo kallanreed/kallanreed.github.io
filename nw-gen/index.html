@@ -16,6 +16,7 @@
     <link type="text/css" rel="stylesheet" href="nw-gen.css" />
     <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
     <script src="model.js"></script>
+    <script src="generate.js"></script>
 </head>
 
 <body>
@@ -34,6 +35,26 @@
                 <button @click="commitLine">Commit</button>
                 <button @click="clear">Clear</button>
                 <button @click="undo">Undo</button>
+            </div>
+            <div class="auto-gen">
+                <div class="sub-header">Auto Generate</div>
+                <div class="auto-gen-controls">
+                    <label>
+                        Temperature: {{ temperature.toFixed(2) }}
+                        <input type="range" min="0" max="2" step="0.05" v-model.number="temperature" />
+                    </label>
+                    <label>
+                        Meter (syllables per line)
+                        <input v-model="meterPattern" placeholder="5,7,5" />
+                    </label>
+                    <button @click="generateAutoLine">Generate Line</button>
+                    <button @click="generateAutoPoem">Generate Poem</button>
+                </div>
+                <div class="temperature-hint">
+                    0&ndash;1 follows the model more/less strictly by frequency.
+                    Above 1 it starts swapping in words the model never saw here,
+                    and near 2 it can reach for words outside the model entirely.
+                </div>
             </div>
             <div>
                 <ul class="suggestion-list">
